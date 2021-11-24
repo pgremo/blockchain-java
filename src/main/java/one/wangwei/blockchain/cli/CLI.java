@@ -236,12 +236,9 @@ public class CLI {
      * 打印出区块链中的所有区块
      */
     private void printChain() {
-        Blockchain blockchain = Blockchain.initBlockchainFromDB();
-        for (Blockchain.BlockchainIterator iterator = blockchain.getBlockchainIterator(); iterator.hashNext(); ) {
-            Block block = iterator.next();
+        for (Block block: Blockchain.initBlockchainFromDB()) {
             if (block != null) {
-                boolean validate = ProofOfWork.newProofOfWork(block).validate();
-                log.info(block.toString() + ", validate = " + validate);
+                log.info(block + ", validate = " + ProofOfWork.newProofOfWork(block).validate());
             }
         }
     }

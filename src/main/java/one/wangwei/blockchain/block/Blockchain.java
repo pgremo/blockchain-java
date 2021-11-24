@@ -9,13 +9,16 @@ import one.wangwei.blockchain.store.RocksDBUtils;
 import one.wangwei.blockchain.transaction.TXInput;
 import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
+import one.wangwei.blockchain.util.ByteUtils;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  * <p> 区块链 </p>
@@ -27,7 +30,7 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 @Slf4j
-public class Blockchain {
+public class Blockchain implements Iterable<Block> {
 
     private String lastBlockHash;
 
@@ -74,7 +77,7 @@ public class Blockchain {
         // 挖矿前，先验证交易记录
         for (Transaction tx : transactions) {
             if (!this.verifyTransactions(tx)) {
-                log.error("ERROR: Fail to mine block ! Invalid transaction ! tx=" + tx.toString());
+                log.error("ERROR: Fail to mine block ! Invalid transaction ! tx=" + tx);
                 throw new RuntimeException("ERROR: Fail to mine block ! Invalid transaction ! ");
             }
         }
@@ -103,7 +106,7 @@ public class Blockchain {
     /**
      * 区块链迭代器
      */
-    public class BlockchainIterator {
+    public static class BlockchainIterator implements Iterator<Block> {
 
         private String currentBlockHash;
 
@@ -116,19 +119,8 @@ public class Blockchain {
          *
          * @return
          */
-        public boolean hashNext() {
-            if (StringUtils.isBlank(currentBlockHash)) {
-                return false;
-            }
-            Block lastBlock = RocksDBUtils.getInstance().getBlock(currentBlockHash);
-            if (lastBlock == null) {
-                return false;
-            }
-            // 创世区块直接放行
-            if (lastBlock.getPrevBlockHash().length() == 0) {
-                return true;
-            }
-            return RocksDBUtils.getInstance().getBlock(lastBlock.getPrevBlockHash()) != null;
+        public boolean hasNext() {
+            return !currentBlockHash.equals(ByteUtils.ZERO_HASH);
         }
 
 
@@ -140,10 +132,10 @@ public class Blockchain {
         public Block next() {
             Block currentBlock = RocksDBUtils.getInstance().getBlock(currentBlockHash);
             if (currentBlock != null) {
-                this.currentBlockHash = currentBlock.getPrevBlockHash();
+                currentBlockHash = currentBlock.getPrevBlockHash();
                 return currentBlock;
             }
-            return null;
+            throw new NoSuchElementException();
         }
     }
 
@@ -152,7 +144,7 @@ public class Blockchain {
      *
      * @return
      */
-    public BlockchainIterator getBlockchainIterator() {
+    public Iterator<Block> iterator() {
         return new BlockchainIterator(lastBlockHash);
     }
 
@@ -165,8 +157,7 @@ public class Blockchain {
         Map<String, int[]> allSpentTXOs = this.getAllSpentTXOs();
         Map<String, TXOutput[]> allUTXOs = Maps.newHashMap();
         // 再次遍历所有区块中的交易输出
-        for (BlockchainIterator blockchainIterator = this.getBlockchainIterator(); blockchainIterator.hashNext(); ) {
-            Block block = blockchainIterator.next();
+        for (Block block: this) {
             for (Transaction transaction : block.getTransactions()) {
 
                 String txId = Hex.encodeHexString(transaction.getTxId());
@@ -198,8 +189,7 @@ public class Blockchain {
     private Map<String, int[]> getAllSpentTXOs() {
         // 定义TxId ——> spentOutIndex[]，存储交易ID与已被花费的交易输出数组索引值
         Map<String, int[]> spentTXOs = Maps.newHashMap();
-        for (BlockchainIterator blockchainIterator = this.getBlockchainIterator(); blockchainIterator.hashNext(); ) {
-            Block block = blockchainIterator.next();
+        for (Block block: this) {
 
             for (Transaction transaction : block.getTransactions()) {
                 // 如果是 coinbase 交易，直接跳过，因为它不存在引用前一个区块的交易输出
@@ -229,8 +219,7 @@ public class Blockchain {
      * @return
      */
     private Transaction findTransaction(byte[] txId) {
-        for (BlockchainIterator iterator = this.getBlockchainIterator(); iterator.hashNext(); ) {
-            Block block = iterator.next();
+        for (Block block: this) {
             for (Transaction tx : block.getTransactions()) {
                 if (Arrays.equals(tx.getTxId(), txId)) {
                     return tx;

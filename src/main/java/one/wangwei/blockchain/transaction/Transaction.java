@@ -26,7 +26,6 @@ import java.security.PublicKey;
 import java.security.Security;
 import java.security.Signature;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -131,11 +130,8 @@ public class Transaction {
             log.error("ERROR: Not enough funds ! accumulated=" + accumulated + ", amount=" + amount);
             throw new RuntimeException("ERROR: Not enough funds ! ");
         }
-        Iterator<Map.Entry<String, int[]>> iterator = unspentOuts.entrySet().iterator();
-
         TXInput[] txInputs = {};
-        while (iterator.hasNext()) {
-            Map.Entry<String, int[]> entry = iterator.next();
+        for (Map.Entry<String, int[]> entry: unspentOuts.entrySet()) {
             String txIdStr = entry.getKey();
             int[] outIds = entry.getValue();
             byte[] txId = Hex.decodeHex(txIdStr);

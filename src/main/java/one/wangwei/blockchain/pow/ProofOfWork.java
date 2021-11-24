@@ -65,8 +65,8 @@ public class ProofOfWork {
             byte[] data = this.prepareData(nonce);
             shaHex = DigestUtils.sha256Hex(data);
             if (new BigInteger(shaHex, 16).compareTo(this.target) == -1) {
-                log.info("Elapsed Time: {} seconds \n", new Object[]{(float) (System.currentTimeMillis() - startTime) / 1000});
-                log.info("correct hash Hex: {} \n", new Object[]{shaHex});
+                log.info("Elapsed Time: {} seconds \n", (float) (System.currentTimeMillis() - startTime) / 1000);
+                log.info("correct hash Hex: {} \n", shaHex);
                 break;
             } else {
                 nonce++;

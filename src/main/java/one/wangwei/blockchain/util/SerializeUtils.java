@@ -3,6 +3,12 @@ package one.wangwei.blockchain.util;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import one.wangwei.blockchain.block.Block;
+import one.wangwei.blockchain.transaction.TXInput;
+import one.wangwei.blockchain.transaction.TXOutput;
+import one.wangwei.blockchain.transaction.Transaction;
+
+import java.util.HashMap;
 
 /**
  * 序列化工具类
@@ -12,6 +18,21 @@ import com.esotericsoftware.kryo.io.Output;
  */
 public class SerializeUtils {
 
+    private static Kryo kryo;
+
+    static{
+        kryo = new Kryo();
+        kryo.register(HashMap.class);
+        kryo.register(Transaction.class);
+        kryo.register(Transaction[].class);
+        kryo.register(TXInput.class);
+        kryo.register(TXInput[].class);
+        kryo.register(TXOutput.class);
+        kryo.register(TXOutput[].class);
+        kryo.register(byte[].class);
+        kryo.register(Block.class);
+    }
+
     /**
      * 反序列化
      *
@@ -19,10 +40,9 @@ public class SerializeUtils {
      * @return
      */
     public static Object deserialize(byte[] bytes) {
-        Input input = new Input(bytes);
-        Object obj = new Kryo().readClassAndObject(input);
-        input.close();
-        return obj;
+        try (Input input = new Input(bytes)) {
+            return kryo.readClassAndObject(input);
+        }
     }
 
     /**
@@ -32,10 +52,9 @@ public class SerializeUtils {
      * @return
      */
     public static byte[] serialize(Object object) {
-        Output output = new Output(4096, -1);
-        new Kryo().writeClassAndObject(output, object);
-        byte[] bytes = output.toBytes();
-        output.close();
-        return bytes;
+        try (Output output = new Output(4096, -1)) {
+            kryo.writeClassAndObject(output, object);
+            return output.toBytes();
+        }
     }
 }

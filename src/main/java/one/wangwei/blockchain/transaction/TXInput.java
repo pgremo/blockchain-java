@@ -42,7 +42,7 @@ public class TXInput {
      * @return
      */
     public boolean usesKey(byte[] pubKeyHash) {
-        byte[] lockingHash = BtcAddressUtils.ripeMD160Hash(this.getPubKey());
+        var lockingHash = BtcAddressUtils.ripeMD160Hash(this.getPubKey());
         return Arrays.equals(lockingHash, pubKeyHash);
     }
 

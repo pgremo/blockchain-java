@@ -1,10 +1,6 @@
 package one.wangwei.blockchain.block;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
-import one.wangwei.blockchain.pow.PowResult;
+import lombok.*;
 import one.wangwei.blockchain.pow.ProofOfWork;
 import one.wangwei.blockchain.transaction.MerkleTree;
 import one.wangwei.blockchain.transaction.Transaction;
@@ -63,9 +59,9 @@ public class Block {
      * @return
      */
     public static Block newBlock(String previousHash, Transaction[] transactions) {
-        Block block = new Block("", previousHash, transactions, Instant.now().getEpochSecond(), 0);
-        ProofOfWork pow = ProofOfWork.newProofOfWork(block);
-        PowResult powResult = pow.run();
+        var block = new Block("", previousHash, transactions, Instant.now().getEpochSecond(), 0);
+        var pow = ProofOfWork.newProofOfWork(block);
+        var powResult = pow.run();
         block.setHash(powResult.getHash());
         block.setNonce(powResult.getNonce());
         return block;
@@ -77,8 +73,8 @@ public class Block {
      * @return
      */
     public byte[] hashTransaction() {
-        byte[][] txIdArrays = new byte[this.getTransactions().length][];
-        for (int i = 0; i < this.getTransactions().length; i++) {
+        var txIdArrays = new byte[this.getTransactions().length][];
+        for (var i = 0; i < this.getTransactions().length; i++) {
             txIdArrays[i] = this.getTransactions()[i].hash();
         }
         return new MerkleTree(txIdArrays).getRoot().getHash();

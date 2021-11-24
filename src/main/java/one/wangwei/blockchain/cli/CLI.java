@@ -1,22 +1,18 @@
 package one.wangwei.blockchain.cli;
 
 import lombok.extern.slf4j.Slf4j;
-import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.block.Blockchain;
 import one.wangwei.blockchain.pow.ProofOfWork;
 import one.wangwei.blockchain.store.RocksDBUtils;
-import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.transaction.UTXOSet;
 import one.wangwei.blockchain.util.Base58Check;
-import one.wangwei.blockchain.wallet.Wallet;
 import one.wangwei.blockchain.wallet.WalletUtils;
 import org.apache.commons.cli.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 
 import java.util.Arrays;
-import java.util.Set;
 
 /**
  * 命令行解析器
@@ -120,8 +116,8 @@ public class CLI {
      * @param address
      */
     private void createBlockchain(String address) {
-        Blockchain blockchain = Blockchain.createBlockchain(address);
-        UTXOSet utxoSet = new UTXOSet(blockchain);
+        var blockchain = Blockchain.createBlockchain(address);
+        var utxoSet = new UTXOSet(blockchain);
         utxoSet.reIndex();
         log.info("Done ! ");
     }
@@ -132,7 +128,7 @@ public class CLI {
      * @throws Exception
      */
     private void createWallet() throws Exception {
-        Wallet wallet = WalletUtils.getInstance().createWallet();
+        var wallet = WalletUtils.getInstance().createWallet();
         log.info("wallet address : " + wallet.getAddress());
     }
 
@@ -140,12 +136,12 @@ public class CLI {
      * 打印钱包地址
      */
     private void printAddresses() {
-        Set<String> addresses = WalletUtils.getInstance().getAddresses();
+        var addresses = WalletUtils.getInstance().getAddresses();
         if (addresses == null || addresses.isEmpty()) {
             log.info("There isn't address");
             return;
         }
-        for (String address : addresses) {
+        for (var address : addresses) {
             log.info("Wallet address: " + address);
         }
     }
@@ -165,20 +161,20 @@ public class CLI {
         }
 
         // 得到公钥Hash值
-        byte[] versionedPayload = Base58Check.base58ToBytes(address);
-        byte[] pubKeyHash = Arrays.copyOfRange(versionedPayload, 1, versionedPayload.length);
+        var versionedPayload = Base58Check.base58ToBytes(address);
+        var pubKeyHash = Arrays.copyOfRange(versionedPayload, 1, versionedPayload.length);
 
-        Blockchain blockchain = Blockchain.createBlockchain(address);
-        UTXOSet utxoSet = new UTXOSet(blockchain);
+        var blockchain = Blockchain.createBlockchain(address);
+        var utxoSet = new UTXOSet(blockchain);
 
-        TXOutput[] txOutputs = utxoSet.findUTXOs(pubKeyHash);
-        int balance = 0;
+        var txOutputs = utxoSet.findUTXOs(pubKeyHash);
+        var balance = 0;
         if (txOutputs != null && txOutputs.length > 0) {
-            for (TXOutput txOutput : txOutputs) {
+            for (var txOutput : txOutputs) {
                 balance += txOutput.getValue();
             }
         }
-        log.info("Balance of '{}': {}\n", new Object[]{address, balance});
+        log.info("Balance of '{}': {}\n", address, balance);
     }
 
     /**
@@ -208,12 +204,12 @@ public class CLI {
             log.error("ERROR: amount invalid ! amount=" + amount);
             throw new RuntimeException("ERROR: amount invalid ! amount=" + amount);
         }
-        Blockchain blockchain = Blockchain.createBlockchain(from);
+        var blockchain = Blockchain.createBlockchain(from);
         // 新交易
-        Transaction transaction = Transaction.newUTXOTransaction(from, to, amount, blockchain);
+        var transaction = Transaction.newUTXOTransaction(from, to, amount, blockchain);
         // 奖励
-        Transaction rewardTx = Transaction.newCoinbaseTX(from, "");
-        Block newBlock = blockchain.mineBlock(new Transaction[]{transaction, rewardTx});
+        var rewardTx = Transaction.newCoinbaseTX(from, "");
+        var newBlock = blockchain.mineBlock(new Transaction[]{transaction, rewardTx});
         new UTXOSet(blockchain).update(newBlock);
         log.info("Success!");
     }
@@ -236,7 +232,7 @@ public class CLI {
      * 打印出区块链中的所有区块
      */
     private void printChain() {
-        for (Block block: Blockchain.initBlockchainFromDB()) {
+        for (var block: Blockchain.initBlockchainFromDB()) {
             if (block != null) {
                 log.info(block + ", validate = " + ProofOfWork.newProofOfWork(block).validate());
             }

@@ -86,8 +86,8 @@ public class RocksDBUtils {
      */
     private void initBlockBucket() {
         try {
-            byte[] blockBucketKey = SerializeUtils.serialize(BLOCKS_BUCKET_KEY);
-            byte[] blockBucketBytes = db.get(blockBucketKey);
+            var blockBucketKey = SerializeUtils.serialize(BLOCKS_BUCKET_KEY);
+            var blockBucketBytes = db.get(blockBucketKey);
             if (blockBucketBytes != null) {
                 blocksBucket = (Map) SerializeUtils.deserialize(blockBucketBytes);
             } else {
@@ -105,8 +105,8 @@ public class RocksDBUtils {
      */
     private void initChainStateBucket() {
         try {
-            byte[] chainstateBucketKey = SerializeUtils.serialize(CHAINSTATE_BUCKET_KEY);
-            byte[] chainstateBucketBytes = db.get(chainstateBucketKey);
+            var chainstateBucketKey = SerializeUtils.serialize(CHAINSTATE_BUCKET_KEY);
+            var chainstateBucketBytes = db.get(chainstateBucketKey);
             if (chainstateBucketBytes != null) {
                 chainstateBucket = (Map) SerializeUtils.deserialize(chainstateBucketBytes);
             } else {
@@ -140,7 +140,7 @@ public class RocksDBUtils {
      * @return
      */
     public String getLastBlockHash() {
-        byte[] lastBlockHashBytes = blocksBucket.get(LAST_BLOCK_KEY);
+        var lastBlockHashBytes = blocksBucket.get(LAST_BLOCK_KEY);
         if (lastBlockHashBytes != null) {
             return (String) SerializeUtils.deserialize(lastBlockHashBytes);
         }
@@ -169,7 +169,7 @@ public class RocksDBUtils {
      * @return
      */
     public Block getBlock(String blockHash) {
-        byte[] blockBytes = blocksBucket.get(blockHash);
+        var blockBytes = blocksBucket.get(blockHash);
         if (blockBytes != null) {
             return (Block) SerializeUtils.deserialize(blockBytes);
         }
@@ -212,7 +212,7 @@ public class RocksDBUtils {
      * @param key 交易ID
      */
     public TXOutput[] getUTXOs(String key) {
-        byte[] utxosByte = chainstateBucket.get(key);
+        var utxosByte = chainstateBucket.get(key);
         if (utxosByte != null) {
             return (TXOutput[]) SerializeUtils.deserialize(utxosByte);
         }

@@ -9,7 +9,6 @@ import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.jce.spec.ECParameterSpec;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -55,11 +54,11 @@ public class Wallet implements Serializable {
      */
     private void initWallet() {
         try {
-            KeyPair keyPair = newECKeyPair();
-            BCECPrivateKey privateKey = (BCECPrivateKey) keyPair.getPrivate();
-            BCECPublicKey publicKey = (BCECPublicKey) keyPair.getPublic();
+            var keyPair = newECKeyPair();
+            var privateKey = (BCECPrivateKey) keyPair.getPrivate();
+            var publicKey = (BCECPublicKey) keyPair.getPublic();
 
-            byte[] publicKeyBytes = publicKey.getQ().getEncoded(false);
+            var publicKeyBytes = publicKey.getQ().getEncoded(false);
 
             this.setPrivateKey(privateKey);
             this.setPublicKey(publicKeyBytes);
@@ -80,10 +79,10 @@ public class Wallet implements Serializable {
         // 注册 BC Provider
         Security.addProvider(new BouncyCastleProvider());
         // 创建椭圆曲线算法的密钥对生成器，算法为 ECDSA
-        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("ECDSA", BouncyCastleProvider.PROVIDER_NAME);
+        var keyPairGenerator = KeyPairGenerator.getInstance("ECDSA", BouncyCastleProvider.PROVIDER_NAME);
         // 椭圆曲线（EC）域参数设定
         // bitcoin 为什么会选择 secp256k1，详见：https://bitcointalk.org/index.php?topic=151120.0
-        ECParameterSpec ecSpec = ECNamedCurveTable.getParameterSpec("secp256k1");
+        var ecSpec = ECNamedCurveTable.getParameterSpec("secp256k1");
         keyPairGenerator.initialize(ecSpec, new SecureRandom());
         return keyPairGenerator.generateKeyPair();
     }
@@ -97,20 +96,20 @@ public class Wallet implements Serializable {
     public String getAddress() {
         try {
             // 1. 获取 ripemdHashedKey
-            byte[] ripemdHashedKey = BtcAddressUtils.ripeMD160Hash(this.getPublicKey());
+            var ripemdHashedKey = BtcAddressUtils.ripeMD160Hash(this.getPublicKey());
 
             // 2. 添加版本 0x00
-            ByteArrayOutputStream addrStream = new ByteArrayOutputStream();
+            var addrStream = new ByteArrayOutputStream();
             addrStream.write((byte) 0);
             addrStream.write(ripemdHashedKey);
-            byte[] versionedPayload = addrStream.toByteArray();
+            var versionedPayload = addrStream.toByteArray();
 
             // 3. 计算校验码
-            byte[] checksum = BtcAddressUtils.checksum(versionedPayload);
+            var checksum = BtcAddressUtils.checksum(versionedPayload);
 
             // 4. 得到 version + paylod + checksum 的组合
             addrStream.write(checksum);
-            byte[] binaryAddress = addrStream.toByteArray();
+            var binaryAddress = addrStream.toByteArray();
 
             // 5. 执行Base58转换处理
             return Base58Check.rawBytesToBase58(binaryAddress);

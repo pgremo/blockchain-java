@@ -40,7 +40,7 @@ public class SerializeUtils {
      * @return
      */
     public static Object deserialize(byte[] bytes) {
-        try (Input input = new Input(bytes)) {
+        try (var input = new Input(bytes)) {
             return kryo.readClassAndObject(input);
         }
     }
@@ -52,7 +52,7 @@ public class SerializeUtils {
      * @return
      */
     public static byte[] serialize(Object object) {
-        try (Output output = new Output(4096, -1)) {
+        try (var output = new Output(4096, -1)) {
             kryo.writeClassAndObject(output, object);
             return output.toBytes();
         }

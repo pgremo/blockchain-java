@@ -47,7 +47,7 @@ public class ProofOfWork {
      * @return
      */
     public static ProofOfWork newProofOfWork(Block block) {
-        BigInteger targetValue = BigInteger.valueOf(1).shiftLeft((256 - TARGET_BITS));
+        var targetValue = BigInteger.valueOf(1).shiftLeft((256 - TARGET_BITS));
         return new ProofOfWork(block, targetValue);
     }
 
@@ -57,12 +57,12 @@ public class ProofOfWork {
      * @return
      */
     public PowResult run() {
-        long nonce = 0;
-        String shaHex = "";
-        long startTime = System.currentTimeMillis();
+        var nonce = 0L;
+        var shaHex = "";
+        var startTime = System.currentTimeMillis();
         while (nonce < Long.MAX_VALUE) {
             log.info("POW running, nonce=" + nonce);
-            byte[] data = this.prepareData(nonce);
+            var data = this.prepareData(nonce);
             shaHex = DigestUtils.sha256Hex(data);
             if (new BigInteger(shaHex, 16).compareTo(this.target) == -1) {
                 log.info("Elapsed Time: {} seconds \n", (float) (System.currentTimeMillis() - startTime) / 1000);
@@ -81,7 +81,7 @@ public class ProofOfWork {
      * @return
      */
     public boolean validate() {
-        byte[] data = this.prepareData(this.getBlock().getNonce());
+        var data = this.prepareData(this.getBlock().getNonce());
         return new BigInteger(DigestUtils.sha256Hex(data), 16).compareTo(this.target) == -1;
     }
 
@@ -94,7 +94,7 @@ public class ProofOfWork {
      * @return
      */
     private byte[] prepareData(long nonce) {
-        byte[] prevBlockHashBytes = {};
+        var prevBlockHashBytes = new byte[0];
         if (StringUtils.isNoneBlank(this.getBlock().getPrevBlockHash())) {
             prevBlockHashBytes = new BigInteger(this.getBlock().getPrevBlockHash(), 16).toByteArray();
         }

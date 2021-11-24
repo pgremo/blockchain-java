@@ -64,7 +64,7 @@ public class WalletUtils {
      * 初始化钱包文件
      */
     private void initWalletFile() {
-        File file = new File(WALLET_FILE);
+        var file = new File(WALLET_FILE);
         if (!file.exists()) {
             this.saveToDisk(new Wallets());
         } else {
@@ -78,8 +78,7 @@ public class WalletUtils {
      * @return
      */
     public Set<String> getAddresses() {
-        Wallets wallets = this.loadFromDisk();
-        return wallets.getAddresses();
+        return this.loadFromDisk().getAddresses();
     }
 
     /**
@@ -89,8 +88,7 @@ public class WalletUtils {
      * @return
      */
     public Wallet getWallet(String address) {
-        Wallets wallets = this.loadFromDisk();
-        return wallets.getWallet(address);
+        return this.loadFromDisk().getWallet(address);
     }
 
     /**
@@ -99,8 +97,8 @@ public class WalletUtils {
      * @return
      */
     public Wallet createWallet() {
-        Wallet wallet = new Wallet();
-        Wallets wallets = this.loadFromDisk();
+        var wallet = new Wallet();
+        var wallets = this.loadFromDisk();
         wallets.addWallet(wallet);
         this.saveToDisk(wallets);
         return wallet;
@@ -115,15 +113,15 @@ public class WalletUtils {
                 log.error("Fail to save wallet to file ! wallets is null ");
                 throw new Exception("ERROR: Fail to save wallet to file !");
             }
-            SecretKeySpec sks = new SecretKeySpec(CIPHER_TEXT, ALGORITHM);
+            var sks = new SecretKeySpec(CIPHER_TEXT, ALGORITHM);
             // Create cipher
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            var cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.ENCRYPT_MODE, sks);
-            SealedObject sealedObject = new SealedObject(wallets, cipher);
+            var sealedObject = new SealedObject(wallets, cipher);
             // Wrap the output stream
-            @Cleanup CipherOutputStream cos = new CipherOutputStream(
+            @Cleanup var cos = new CipherOutputStream(
                     new BufferedOutputStream(new FileOutputStream(WALLET_FILE)), cipher);
-            @Cleanup ObjectOutputStream outputStream = new ObjectOutputStream(cos);
+            @Cleanup var outputStream = new ObjectOutputStream(cos);
             outputStream.writeObject(sealedObject);
         } catch (Exception e) {
             log.error("Fail to save wallet to disk !", e);
@@ -136,13 +134,13 @@ public class WalletUtils {
      */
     private Wallets loadFromDisk() {
         try {
-            SecretKeySpec sks = new SecretKeySpec(CIPHER_TEXT, ALGORITHM);
-            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            var sks = new SecretKeySpec(CIPHER_TEXT, ALGORITHM);
+            var cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.DECRYPT_MODE, sks);
-            @Cleanup CipherInputStream cipherInputStream = new CipherInputStream(
+            @Cleanup var cipherInputStream = new CipherInputStream(
                     new BufferedInputStream(new FileInputStream(WALLET_FILE)), cipher);
-            @Cleanup ObjectInputStream inputStream = new ObjectInputStream(cipherInputStream);
-            SealedObject sealedObject = (SealedObject) inputStream.readObject();
+            @Cleanup var inputStream = new ObjectInputStream(cipherInputStream);
+            var sealedObject = (SealedObject) inputStream.readObject();
             return (Wallets) sealedObject.getObject(cipher);
         } catch (Exception e) {
             log.error("Fail to load wallet from disk ! ", e);
@@ -203,7 +201,7 @@ public class WalletUtils {
                 log.error("Fail to get wallet ! address invalid ! address=" + address, e);
                 throw new RuntimeException("Fail to get wallet ! ");
             }
-            Wallet wallet = walletMap.get(address);
+            var wallet = walletMap.get(address);
             if (wallet == null) {
                 log.error("Fail to get wallet ! wallet don`t exist ! address=" + address);
                 throw new RuntimeException("Fail to get wallet ! ");

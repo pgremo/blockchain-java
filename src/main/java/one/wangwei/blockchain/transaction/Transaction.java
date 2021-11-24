@@ -16,13 +16,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.jce.spec.ECParameterSpec;
 import org.bouncycastle.jce.spec.ECPublicKeySpec;
-import org.bouncycastle.math.ec.ECPoint;
 
 import java.math.BigInteger;
 import java.security.KeyFactory;
-import java.security.PublicKey;
 import java.security.Security;
 import java.security.Signature;
 import java.util.Arrays;
@@ -162,15 +159,15 @@ public class Transaction {
      * @return
      */
     public Transaction trimmedCopy() {
-        TXInput[] tmpTXInputs = new TXInput[this.getInputs().length];
-        for (int i = 0; i < this.getInputs().length; i++) {
-            TXInput txInput = this.getInputs()[i];
+        var tmpTXInputs = new TXInput[this.getInputs().length];
+        for (var i = 0; i < this.getInputs().length; i++) {
+            var txInput = this.getInputs()[i];
             tmpTXInputs[i] = new TXInput(txInput.getTxId(), txInput.getTxOutputIndex(), null, null);
         }
 
-        TXOutput[] tmpTXOutputs = new TXOutput[this.getOutputs().length];
-        for (int i = 0; i < this.getOutputs().length; i++) {
-            TXOutput txOutput = this.getOutputs()[i];
+        var tmpTXOutputs = new TXOutput[this.getOutputs().length];
+        for (var i = 0; i < this.getOutputs().length; i++) {
+            var txOutput = this.getOutputs()[i];
             tmpTXOutputs[i] = new TXOutput(txOutput.getValue(), txOutput.getPubKeyHash());
         }
 
@@ -190,25 +187,25 @@ public class Transaction {
             return;
         }
         // 再次验证一下交易信息中的交易输入是否正确，也就是能否查找对应的交易数据
-        for (TXInput txInput : this.getInputs()) {
+        for (var txInput : this.getInputs()) {
             if (prevTxMap.get(Hex.encodeHexString(txInput.getTxId())) == null) {
                 throw new RuntimeException("ERROR: Previous transaction is not correct");
             }
         }
 
         // 创建用于签名的交易信息的副本
-        Transaction txCopy = this.trimmedCopy();
+        var txCopy = this.trimmedCopy();
 
         Security.addProvider(new BouncyCastleProvider());
-        Signature ecdsaSign = Signature.getInstance("SHA256withECDSA", BouncyCastleProvider.PROVIDER_NAME);
+        var ecdsaSign = Signature.getInstance("SHA256withECDSA", BouncyCastleProvider.PROVIDER_NAME);
         ecdsaSign.initSign(privateKey);
 
-        for (int i = 0; i < txCopy.getInputs().length; i++) {
-            TXInput txInputCopy = txCopy.getInputs()[i];
+        for (var i = 0; i < txCopy.getInputs().length; i++) {
+            var txInputCopy = txCopy.getInputs()[i];
             // 获取交易输入TxID对应的交易数据
-            Transaction prevTx = prevTxMap.get(Hex.encodeHexString(txInputCopy.getTxId()));
+            var prevTx = prevTxMap.get(Hex.encodeHexString(txInputCopy.getTxId()));
             // 获取交易输入所对应的上一笔交易中的交易输出
-            TXOutput prevTxOutput = prevTx.getOutputs()[txInputCopy.getTxOutputIndex()];
+            var prevTxOutput = prevTx.getOutputs()[txInputCopy.getTxOutputIndex()];
             txInputCopy.setPubKey(prevTxOutput.getPubKeyHash());
             txInputCopy.setSignature(null);
             // 得到要签名的数据，即交易ID
@@ -217,7 +214,7 @@ public class Transaction {
 
             // 对整个交易信息仅进行签名，即对交易ID进行签名
             ecdsaSign.update(txCopy.getTxId());
-            byte[] signature = ecdsaSign.sign();
+            var signature = ecdsaSign.sign();
 
             // 将整个交易数据的签名赋值给交易输入，因为交易输入需要包含整个交易信息的签名
             // 注意是将得到的签名赋值给原交易信息中的交易输入
@@ -239,28 +236,28 @@ public class Transaction {
         }
 
         // 再次验证一下交易信息中的交易输入是否正确，也就是能否查找对应的交易数据
-        for (TXInput txInput : this.getInputs()) {
+        for (var txInput : this.getInputs()) {
             if (prevTxMap.get(Hex.encodeHexString(txInput.getTxId())) == null) {
                 throw new RuntimeException("ERROR: Previous transaction is not correct");
             }
         }
 
         // 创建用于签名验证的交易信息的副本
-        Transaction txCopy = this.trimmedCopy();
+        var txCopy = this.trimmedCopy();
 
         Security.addProvider(new BouncyCastleProvider());
-        ECParameterSpec ecParameters = ECNamedCurveTable.getParameterSpec("secp256k1");
-        KeyFactory keyFactory = KeyFactory.getInstance("ECDSA", BouncyCastleProvider.PROVIDER_NAME);
-        Signature ecdsaVerify = Signature.getInstance("SHA256withECDSA", BouncyCastleProvider.PROVIDER_NAME);
+        var ecParameters = ECNamedCurveTable.getParameterSpec("secp256k1");
+        var keyFactory = KeyFactory.getInstance("ECDSA", BouncyCastleProvider.PROVIDER_NAME);
+        var ecdsaVerify = Signature.getInstance("SHA256withECDSA", BouncyCastleProvider.PROVIDER_NAME);
 
-        for (int i = 0; i < this.getInputs().length; i++) {
-            TXInput txInput = this.getInputs()[i];
+        for (var i = 0; i < this.getInputs().length; i++) {
+            var txInput = this.getInputs()[i];
             // 获取交易输入TxID对应的交易数据
-            Transaction prevTx = prevTxMap.get(Hex.encodeHexString(txInput.getTxId()));
+            var prevTx = prevTxMap.get(Hex.encodeHexString(txInput.getTxId()));
             // 获取交易输入所对应的上一笔交易中的交易输出
-            TXOutput prevTxOutput = prevTx.getOutputs()[txInput.getTxOutputIndex()];
+            var prevTxOutput = prevTx.getOutputs()[txInput.getTxOutputIndex()];
 
-            TXInput txInputCopy = txCopy.getInputs()[i];
+            var txInputCopy = txCopy.getInputs()[i];
             txInputCopy.setSignature(null);
             txInputCopy.setPubKey(prevTxOutput.getPubKeyHash());
             // 得到要签名的数据，即交易ID
@@ -268,12 +265,12 @@ public class Transaction {
             txInputCopy.setPubKey(null);
 
             // 使用椭圆曲线 x,y 点去生成公钥Key
-            BigInteger x = new BigInteger(1, Arrays.copyOfRange(txInput.getPubKey(), 1, 33));
-            BigInteger y = new BigInteger(1, Arrays.copyOfRange(txInput.getPubKey(), 33, 65));
-            ECPoint ecPoint = ecParameters.getCurve().createPoint(x, y);
+            var x = new BigInteger(1, Arrays.copyOfRange(txInput.getPubKey(), 1, 33));
+            var y = new BigInteger(1, Arrays.copyOfRange(txInput.getPubKey(), 33, 65));
+            var ecPoint = ecParameters.getCurve().createPoint(x, y);
 
-            ECPublicKeySpec keySpec = new ECPublicKeySpec(ecPoint, ecParameters);
-            PublicKey publicKey = keyFactory.generatePublic(keySpec);
+            var keySpec = new ECPublicKeySpec(ecPoint, ecParameters);
+            var publicKey = keyFactory.generatePublic(keySpec);
             ecdsaVerify.initVerify(publicKey);
             ecdsaVerify.update(txCopy.getTxId());
             if (!ecdsaVerify.verify(txInput.getSignature())) {

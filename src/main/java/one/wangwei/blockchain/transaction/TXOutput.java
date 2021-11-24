@@ -36,8 +36,8 @@ public class TXOutput {
      */
     public static TXOutput newTXOutput(int value, String address) {
         // 反向转化为 byte 数组
-        byte[] versionedPayload = Base58Check.base58ToBytes(address);
-        byte[] pubKeyHash = Arrays.copyOfRange(versionedPayload, 1, versionedPayload.length);
+        var versionedPayload = Base58Check.base58ToBytes(address);
+        var pubKeyHash = Arrays.copyOfRange(versionedPayload, 1, versionedPayload.length);
         return new TXOutput(value, pubKeyHash);
     }
 

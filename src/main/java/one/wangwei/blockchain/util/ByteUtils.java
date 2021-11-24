@@ -28,8 +28,8 @@ public class ByteUtils {
      * @return
      */
     public static byte[] merge(byte[]... bytes) {
-        Stream<Byte> stream = Stream.of();
-        for (byte[] b: bytes) {
+        var stream = Stream.<Byte>of();
+        for (var b: bytes) {
             stream = Stream.concat(stream, Arrays.stream(ArrayUtils.toObject(b)));
         }
         return ArrayUtils.toPrimitive(stream.toArray(Byte[]::new));

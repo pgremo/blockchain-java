@@ -6,7 +6,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import one.wangwei.blockchain.store.RocksDBUtils;
-import one.wangwei.blockchain.transaction.TXInput;
 import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.ByteUtils;
@@ -41,7 +40,7 @@ public class Blockchain implements Iterable<Block> {
      * @return
      */
     public static Blockchain initBlockchainFromDB() {
-        String lastBlockHash = RocksDBUtils.getInstance().getLastBlockHash();
+        var lastBlockHash = RocksDBUtils.getInstance().getLastBlockHash();
         if (lastBlockHash == null) {
             throw new RuntimeException("ERROR: Fail to init blockchain from db. ");
         }
@@ -55,12 +54,12 @@ public class Blockchain implements Iterable<Block> {
      * @return
      */
     public static Blockchain createBlockchain(String address) {
-        String lastBlockHash = RocksDBUtils.getInstance().getLastBlockHash();
+        var lastBlockHash = RocksDBUtils.getInstance().getLastBlockHash();
         if (StringUtils.isBlank(lastBlockHash)) {
             // 创建 coinBase 交易
-            String genesisCoinbaseData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
-            Transaction coinbaseTX = Transaction.newCoinbaseTX(address, genesisCoinbaseData);
-            Block genesisBlock = Block.newGenesisBlock(coinbaseTX);
+            var genesisCoinbaseData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
+            var coinbaseTX = Transaction.newCoinbaseTX(address, genesisCoinbaseData);
+            var genesisBlock = Block.newGenesisBlock(coinbaseTX);
             lastBlockHash = genesisBlock.getHash();
             RocksDBUtils.getInstance().putBlock(genesisBlock);
             RocksDBUtils.getInstance().putLastBlockHash(lastBlockHash);
@@ -75,18 +74,18 @@ public class Blockchain implements Iterable<Block> {
      */
     public Block mineBlock(Transaction[] transactions) {
         // 挖矿前，先验证交易记录
-        for (Transaction tx : transactions) {
+        for (var tx : transactions) {
             if (!this.verifyTransactions(tx)) {
                 log.error("ERROR: Fail to mine block ! Invalid transaction ! tx=" + tx);
                 throw new RuntimeException("ERROR: Fail to mine block ! Invalid transaction ! ");
             }
         }
-        String lastBlockHash = RocksDBUtils.getInstance().getLastBlockHash();
+        var lastBlockHash = RocksDBUtils.getInstance().getLastBlockHash();
         if (lastBlockHash == null) {
             throw new RuntimeException("ERROR: Fail to get last block hash ! ");
         }
 
-        Block block = Block.newBlock(lastBlockHash, transactions);
+        var block = Block.newBlock(lastBlockHash, transactions);
         this.addBlock(block);
         return block;
     }
@@ -130,7 +129,7 @@ public class Blockchain implements Iterable<Block> {
          * @return
          */
         public Block next() {
-            Block currentBlock = RocksDBUtils.getInstance().getBlock(currentBlockHash);
+            var currentBlock = RocksDBUtils.getInstance().getBlock(currentBlockHash);
             if (currentBlock != null) {
                 currentBlockHash = currentBlock.getPrevBlockHash();
                 return currentBlock;
@@ -154,21 +153,21 @@ public class Blockchain implements Iterable<Block> {
      * @return
      */
     public Map<String, TXOutput[]> findAllUTXOs() {
-        Map<String, int[]> allSpentTXOs = this.getAllSpentTXOs();
-        Map<String, TXOutput[]> allUTXOs = Maps.newHashMap();
+        var allSpentTXOs = this.getAllSpentTXOs();
+        var allUTXOs = Maps.<String, TXOutput[]>newHashMap();
         // 再次遍历所有区块中的交易输出
-        for (Block block: this) {
-            for (Transaction transaction : block.getTransactions()) {
+        for (var block: this) {
+            for (var transaction : block.getTransactions()) {
 
-                String txId = Hex.encodeHexString(transaction.getTxId());
+                var txId = Hex.encodeHexString(transaction.getTxId());
 
-                int[] spentOutIndexArray = allSpentTXOs.get(txId);
-                TXOutput[] txOutputs = transaction.getOutputs();
-                for (int outIndex = 0; outIndex < txOutputs.length; outIndex++) {
+                var spentOutIndexArray = allSpentTXOs.get(txId);
+                var txOutputs = transaction.getOutputs();
+                for (var outIndex = 0; outIndex < txOutputs.length; outIndex++) {
                     if (spentOutIndexArray != null && ArrayUtils.contains(spentOutIndexArray, outIndex)) {
                         continue;
                     }
-                    TXOutput[] UTXOArray = allUTXOs.get(txId);
+                    var UTXOArray = allUTXOs.get(txId);
                     if (UTXOArray == null) {
                         UTXOArray = new TXOutput[]{txOutputs[outIndex]};
                     } else {
@@ -188,17 +187,17 @@ public class Blockchain implements Iterable<Block> {
      */
     private Map<String, int[]> getAllSpentTXOs() {
         // 定义TxId ——> spentOutIndex[]，存储交易ID与已被花费的交易输出数组索引值
-        Map<String, int[]> spentTXOs = Maps.newHashMap();
-        for (Block block: this) {
+        var spentTXOs = Maps.<String, int[]>newHashMap();
+        for (var block: this) {
 
-            for (Transaction transaction : block.getTransactions()) {
+            for (var transaction : block.getTransactions()) {
                 // 如果是 coinbase 交易，直接跳过，因为它不存在引用前一个区块的交易输出
                 if (transaction.isCoinbase()) {
                     continue;
                 }
-                for (TXInput txInput : transaction.getInputs()) {
-                    String inTxId = Hex.encodeHexString(txInput.getTxId());
-                    int[] spentOutIndexArray = spentTXOs.get(inTxId);
+                for (var txInput : transaction.getInputs()) {
+                    var inTxId = Hex.encodeHexString(txInput.getTxId());
+                    var spentOutIndexArray = spentTXOs.get(inTxId);
                     if (spentOutIndexArray == null) {
                         spentOutIndexArray = new int[]{txInput.getTxOutputIndex()};
                     } else {
@@ -219,8 +218,8 @@ public class Blockchain implements Iterable<Block> {
      * @return
      */
     private Transaction findTransaction(byte[] txId) {
-        for (Block block: this) {
-            for (Transaction tx : block.getTransactions()) {
+        for (var block: this) {
+            for (var tx : block.getTransactions()) {
                 if (Arrays.equals(tx.getTxId(), txId)) {
                     return tx;
                 }
@@ -238,9 +237,9 @@ public class Blockchain implements Iterable<Block> {
      */
     public void signTransaction(Transaction tx, BCECPrivateKey privateKey) throws Exception {
         // 先来找到这笔新的交易中，交易输入所引用的前面的多笔交易的数据
-        Map<String, Transaction> prevTxMap = Maps.newHashMap();
-        for (TXInput txInput : tx.getInputs()) {
-            Transaction prevTx = this.findTransaction(txInput.getTxId());
+        var prevTxMap = Maps.<String, Transaction>newHashMap();
+        for (var txInput : tx.getInputs()) {
+            var prevTx = this.findTransaction(txInput.getTxId());
             prevTxMap.put(Hex.encodeHexString(txInput.getTxId()), prevTx);
         }
         tx.sign(privateKey, prevTxMap);
@@ -255,9 +254,9 @@ public class Blockchain implements Iterable<Block> {
         if (tx.isCoinbase()) {
             return true;
         }
-        Map<String, Transaction> prevTx = Maps.newHashMap();
-        for (TXInput txInput : tx.getInputs()) {
-            Transaction transaction = this.findTransaction(txInput.getTxId());
+        var prevTx = Maps.<String, Transaction>newHashMap();
+        for (var txInput : tx.getInputs()) {
+            var transaction = this.findTransaction(txInput.getTxId());
             prevTx.put(Hex.encodeHexString(txInput.getTxId()), transaction);
         }
         try {

@@ -39,7 +39,7 @@ public class MerkleTree {
             throw new RuntimeException("ERROR:Fail to construct merkle tree ! leafHashes data invalid ! ");
         }
         this.leafHashes = leafHashes;
-        List<Node> parents = bottomLevel(leafHashes);
+        var parents = bottomLevel(leafHashes);
         while (parents.size() > 1) {
             parents = internalLevel(parents);
         }

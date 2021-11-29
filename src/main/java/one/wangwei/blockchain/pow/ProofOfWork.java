@@ -101,7 +101,7 @@ public class ProofOfWork {
 
         return ByteUtils.merge(
                 prevBlockHashBytes,
-                this.getBlock().hashTransaction(),
+                this.getBlock().hashTransactions(),
                 ByteUtils.toBytes(this.getBlock().getTimeStamp()),
                 ByteUtils.toBytes(TARGET_BITS),
                 ByteUtils.toBytes(nonce)

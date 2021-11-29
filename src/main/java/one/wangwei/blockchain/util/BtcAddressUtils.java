@@ -1,7 +1,5 @@
 package one.wangwei.blockchain.util;
 
-import org.apache.commons.codec.digest.DigestUtils;
-import org.bouncycastle.crypto.digests.RIPEMD160Digest;
 import org.bouncycastle.util.Arrays;
 
 /**
@@ -11,7 +9,7 @@ import org.bouncycastle.util.Arrays;
  * @date 2018/03/21
  */
 public class BtcAddressUtils {
-    
+
     /**
      * 双重Hash
      *
@@ -19,7 +17,7 @@ public class BtcAddressUtils {
      * @return
      */
     public static byte[] doubleHash(byte[] data) {
-        return DigestUtils.sha256(DigestUtils.sha256(data));
+        return Hashes.sha256(Hashes.sha256(data));
     }
 
     /**
@@ -29,13 +27,7 @@ public class BtcAddressUtils {
      * @return ipeMD160Hash(sha256 ( pubkey))
      */
     public static byte[] ripeMD160Hash(byte[] pubKey) {
-        //1. 先对公钥做 sha256 处理
-        var shaHashedKey = DigestUtils.sha256(pubKey);
-        var ripemd160 = new RIPEMD160Digest();
-        ripemd160.update(shaHashedKey, 0, shaHashedKey.length);
-        var output = new byte[ripemd160.getDigestSize()];
-        ripemd160.doFinal(output, 0);
-        return output;
+        return Hashes.ripemd160(Hashes.sha256(pubKey));
     }
 
     /**

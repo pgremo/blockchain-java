@@ -5,7 +5,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
 import one.wangwei.blockchain.pow.ProofOfWork;
-import one.wangwei.blockchain.transaction.MerkleTree;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.ByteUtils;
 
@@ -14,7 +13,7 @@ import java.util.LinkedList;
 
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toCollection;
-import static one.wangwei.blockchain.util.Hashes.digest;
+import static one.wangwei.blockchain.util.Hashes.sha256;
 
 /**
  * 区块
@@ -75,51 +74,23 @@ public class Block {
         return block;
     }
 
-    /**
-     * 对区块中的交易信息进行Hash计算
-     *
-     * @return
-     */
-    public byte[] hashTransaction() {
-        var txIdArrays = new byte[this.getTransactions().length][];
-        for (var i = 0; i < this.getTransactions().length; i++) {
-            txIdArrays[i] = this.getTransactions()[i].hash();
-        }
-        return new MerkleTree(txIdArrays).getRoot().getHash();
+    public byte[] hashTransactions() {
+        LinkedList<byte[]> hashes = stream(getTransactions()).map(Transaction::hash).collect(toCollection(LinkedList::new));
+        if (hashes.size() % 2 != 0) hashes.add(hashes.getLast());
+        return iterate(hashes).poll();
     }
 
-    public byte[] hashTransacations() {
-        var hashes = stream(getTransactions()).map(Transaction::hash).collect(toCollection(LinkedList::new));
-        while (hashes.size() != 1){
-            if (hashes.size() % 2 != 0){
-                hashes.add(hashes.getLast());
-            }
-            var next = new LinkedList<byte[]>();
-            while(!hashes.isEmpty()){
-                next.add(digest(hashes.poll(), hashes.poll()));
-            }
-            hashes = next;
-        }
-        return hashes.poll();
-    }
-
-    public byte[] hashTransacations2() {
-        return do1(
-                stream(getTransactions()).map(Transaction::hash).collect(toCollection(LinkedList::new))
-        ).poll();
-    }
-
-    public LinkedList<byte[]> do1(LinkedList<byte[]> hashes){
-        if (hashes.size() == 1){
-            return hashes;
-        }
-        if (hashes.size() % 2 != 0){
-            hashes.add(hashes.getLast());
-        }
+    public LinkedList<byte[]> iterate(LinkedList<byte[]> hashes) {
+        if (hashes.size() == 1) return hashes;
         var next = new LinkedList<byte[]>();
-        while(!hashes.isEmpty()){
-            next.add(digest(hashes.poll(), hashes.poll()));
+        while (!hashes.isEmpty()) {
+            next.add(hash(hashes.poll(), hashes.poll()));
         }
-        return do1(next);
+        return iterate(next);
+    }
+
+    private byte[] hash(byte[] left, byte[] right) {
+        if (right == null) return sha256(left);
+        else return sha256(left, right);
     }
 }

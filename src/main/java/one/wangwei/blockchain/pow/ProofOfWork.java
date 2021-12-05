@@ -5,11 +5,22 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import one.wangwei.blockchain.block.Block;
+import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.ByteUtils;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigInteger;
+import java.util.Deque;
+import java.util.LinkedList;
+import java.util.Optional;
+import java.util.stream.LongStream;
+
+import static java.time.Duration.between;
+import static java.time.Instant.now;
+import static java.util.Arrays.stream;
+import static java.util.stream.Collectors.toCollection;
+import static one.wangwei.blockchain.util.Hashes.sha256;
+import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
 
 /**
  * 工作量证明
@@ -51,28 +62,42 @@ public class ProofOfWork {
         return new ProofOfWork(block, targetValue);
     }
 
+    private byte[] hashTransactions() {
+        var hashes = stream(block.getTransactions()).map(Transaction::hash).collect(toCollection(LinkedList::new));
+        if (hashes.size() % 2 != 0) hashes.add(hashes.getLast());
+        return iterate(hashes).poll();
+    }
+
+    private Deque<byte[]> iterate(Deque<byte[]> hashes) {
+        if (hashes.size() == 1) return hashes;
+        var next = new LinkedList<byte[]>();
+        while (!hashes.isEmpty()) {
+            next.add(hash(hashes.poll(), hashes.poll()));
+        }
+        return iterate(next);
+    }
+
+    private byte[] hash(byte[] left, byte[] right) {
+        return right == null ? sha256(left) : sha256(left, right);
+    }
+
     /**
      * 运行工作量证明，开始挖矿，找到小于难度目标值的Hash
      *
      * @return
      */
-    public PowResult run() {
-        var nonce = 0L;
-        var shaHex = "";
-        var startTime = System.currentTimeMillis();
-        while (nonce < Long.MAX_VALUE) {
-            log.info("POW running, nonce=" + nonce);
-            var data = this.prepareData(nonce);
-            shaHex = DigestUtils.sha256Hex(data);
-            if (new BigInteger(shaHex, 16).compareTo(this.target) == -1) {
-                log.info("Elapsed Time: {} seconds \n", (float) (System.currentTimeMillis() - startTime) / 1000);
-                log.info("correct hash Hex: {} \n", shaHex);
-                break;
-            } else {
-                nonce++;
-            }
-        }
-        return new PowResult(nonce, shaHex);
+    public Optional<PowResult> run() {
+        var startTime = now();
+        return LongStream
+                .range(0, Long.MAX_VALUE)
+                .peek(x -> log.info("POW running, nonce={}", x))
+                .mapToObj(x -> new PowResult(x, sha256(prepareData(x))))
+                .filter(x -> new BigInteger(1, x.hash()).compareTo(target) < 0)
+                .peek(x -> {
+                    log.info("Elapsed Time: {} seconds \n", between(startTime, now()));
+                    log.info("correct hash Hex: {} \n", x.hash());
+                })
+                .findFirst();
     }
 
     /**
@@ -81,8 +106,10 @@ public class ProofOfWork {
      * @return
      */
     public boolean validate() {
-        var data = this.prepareData(this.getBlock().getNonce());
-        return new BigInteger(DigestUtils.sha256Hex(data), 16).compareTo(this.target) == -1;
+        return new BigInteger(
+                sha256Hex(prepareData(block.getNonce())),
+                16
+        ).compareTo(target) < 0;
     }
 
     /**
@@ -94,15 +121,14 @@ public class ProofOfWork {
      * @return
      */
     private byte[] prepareData(long nonce) {
-        var prevBlockHashBytes = new byte[0];
-        if (StringUtils.isNoneBlank(this.getBlock().getPrevBlockHash())) {
-            prevBlockHashBytes = new BigInteger(this.getBlock().getPrevBlockHash(), 16).toByteArray();
-        }
+        var prevBlockHashBytes = StringUtils.isNoneBlank(block.getPrevBlockHash()) ?
+                new BigInteger(block.getPrevBlockHash(), 16).toByteArray() :
+                new byte[0];
 
         return ByteUtils.merge(
                 prevBlockHashBytes,
-                this.getBlock().hashTransactions(),
-                ByteUtils.toBytes(this.getBlock().getTimeStamp()),
+                hashTransactions(),
+                ByteUtils.toBytes(block.getTimeStamp()),
                 ByteUtils.toBytes(TARGET_BITS),
                 ByteUtils.toBytes(nonce)
         );

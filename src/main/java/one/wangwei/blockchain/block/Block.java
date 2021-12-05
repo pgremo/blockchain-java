@@ -7,13 +7,10 @@ import lombok.ToString;
 import one.wangwei.blockchain.pow.ProofOfWork;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.ByteUtils;
+import org.apache.commons.codec.binary.Hex;
 
 import java.time.Instant;
-import java.util.LinkedList;
-
-import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.toCollection;
-import static one.wangwei.blockchain.util.Hashes.sha256;
+import java.util.Optional;
 
 /**
  * 区块
@@ -54,7 +51,7 @@ public class Block {
      * @param coinbase
      * @return
      */
-    public static Block newGenesisBlock(Transaction coinbase) {
+    public static Optional<Block> newGenesisBlock(Transaction coinbase) {
         return Block.newBlock(ByteUtils.ZERO_HASH, new Transaction[]{coinbase});
     }
 
@@ -65,32 +62,13 @@ public class Block {
      * @param transactions
      * @return
      */
-    public static Block newBlock(String previousHash, Transaction[] transactions) {
+    public static Optional<Block> newBlock(String previousHash, Transaction[] transactions) {
         var block = new Block("", previousHash, transactions, Instant.now().getEpochSecond(), 0);
         var pow = ProofOfWork.newProofOfWork(block);
-        var powResult = pow.run();
-        block.setHash(powResult.getHash());
-        block.setNonce(powResult.getNonce());
-        return block;
-    }
-
-    public byte[] hashTransactions() {
-        LinkedList<byte[]> hashes = stream(getTransactions()).map(Transaction::hash).collect(toCollection(LinkedList::new));
-        if (hashes.size() % 2 != 0) hashes.add(hashes.getLast());
-        return iterate(hashes).poll();
-    }
-
-    public LinkedList<byte[]> iterate(LinkedList<byte[]> hashes) {
-        if (hashes.size() == 1) return hashes;
-        var next = new LinkedList<byte[]>();
-        while (!hashes.isEmpty()) {
-            next.add(hash(hashes.poll(), hashes.poll()));
-        }
-        return iterate(next);
-    }
-
-    private byte[] hash(byte[] left, byte[] right) {
-        if (right == null) return sha256(left);
-        else return sha256(left, right);
+        return pow.run().map(x -> {
+            block.setHash(Hex.encodeHexString(x.hash()));
+            block.setNonce(x.nonce());
+            return block;
+        });
     }
 }

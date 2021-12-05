@@ -89,7 +89,7 @@ public class RocksDBUtils {
             var blockBucketKey = SerializeUtils.serialize(BLOCKS_BUCKET_KEY);
             var blockBucketBytes = db.get(blockBucketKey);
             if (blockBucketBytes != null) {
-                blocksBucket = (Map) SerializeUtils.deserialize(blockBucketBytes);
+                blocksBucket = SerializeUtils.deserialize(blockBucketBytes);
             } else {
                 blocksBucket = Maps.newHashMap();
                 db.put(blockBucketKey, SerializeUtils.serialize(blocksBucket));
@@ -108,7 +108,7 @@ public class RocksDBUtils {
             var chainstateBucketKey = SerializeUtils.serialize(CHAINSTATE_BUCKET_KEY);
             var chainstateBucketBytes = db.get(chainstateBucketKey);
             if (chainstateBucketBytes != null) {
-                chainstateBucket = (Map) SerializeUtils.deserialize(chainstateBucketBytes);
+                chainstateBucket = SerializeUtils.deserialize(chainstateBucketBytes);
             } else {
                 chainstateBucket = Maps.newHashMap();
                 db.put(chainstateBucketKey, SerializeUtils.serialize(chainstateBucket));
@@ -142,7 +142,7 @@ public class RocksDBUtils {
     public String getLastBlockHash() {
         var lastBlockHashBytes = blocksBucket.get(LAST_BLOCK_KEY);
         if (lastBlockHashBytes != null) {
-            return (String) SerializeUtils.deserialize(lastBlockHashBytes);
+            return SerializeUtils.deserialize(lastBlockHashBytes);
         }
         return "";
     }
@@ -157,8 +157,8 @@ public class RocksDBUtils {
             blocksBucket.put(block.getHash(), SerializeUtils.serialize(block));
             db.put(SerializeUtils.serialize(BLOCKS_BUCKET_KEY), SerializeUtils.serialize(blocksBucket));
         } catch (RocksDBException e) {
-            log.error("Fail to put block ! block=" + block.toString(), e);
-            throw new RuntimeException("Fail to put block ! block=" + block.toString(), e);
+            log.error("Fail to put block ! block=" + block, e);
+            throw new RuntimeException("Fail to put block ! block=" + block, e);
         }
     }
 
@@ -171,7 +171,7 @@ public class RocksDBUtils {
     public Block getBlock(String blockHash) {
         var blockBytes = blocksBucket.get(blockHash);
         if (blockBytes != null) {
-            return (Block) SerializeUtils.deserialize(blockBytes);
+            return SerializeUtils.deserialize(blockBytes);
         }
         throw new RuntimeException("Fail to get block ! blockHash=" + blockHash);
     }
@@ -214,7 +214,7 @@ public class RocksDBUtils {
     public TXOutput[] getUTXOs(String key) {
         var utxosByte = chainstateBucket.get(key);
         if (utxosByte != null) {
-            return (TXOutput[]) SerializeUtils.deserialize(utxosByte);
+            return SerializeUtils.deserialize(utxosByte);
         }
         return null;
     }

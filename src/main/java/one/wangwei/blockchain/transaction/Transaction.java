@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import one.wangwei.blockchain.block.Blockchain;
 import one.wangwei.blockchain.util.BtcAddressUtils;
 import one.wangwei.blockchain.util.SerializeUtils;
-import one.wangwei.blockchain.wallet.Wallet;
 import one.wangwei.blockchain.wallet.WalletUtils;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -15,12 +14,10 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jce.ECNamedCurveTable;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.bouncycastle.jce.spec.ECPublicKeySpec;
 
 import java.math.BigInteger;
 import java.security.KeyFactory;
-import java.security.Security;
 import java.security.Signature;
 import java.util.Arrays;
 import java.util.Map;
@@ -63,9 +60,9 @@ public class Transaction {
      */
     public byte[] hash() {
         // 使用序列化的方式对Transaction对象进行深度复制
-        byte[] serializeBytes = SerializeUtils.serialize(this);
-        Transaction copyTx = (Transaction) SerializeUtils.deserialize(serializeBytes);
-        copyTx.setTxId(new byte[]{});
+        var serializeBytes = SerializeUtils.serialize(this);
+        var copyTx = SerializeUtils.<Transaction>deserialize(serializeBytes);
+        copyTx.setTxId(new byte[0]);
         return DigestUtils.sha256(SerializeUtils.serialize(copyTx));
     }
 
@@ -81,11 +78,11 @@ public class Transaction {
             data = String.format("Reward to '%s'", to);
         }
         // 创建交易输入
-        TXInput txInput = new TXInput(new byte[]{}, -1, null, data.getBytes());
+        var txInput = new TXInput(new byte[0], -1, null, data.getBytes());
         // 创建交易输出
-        TXOutput txOutput = TXOutput.newTXOutput(SUBSIDY, to);
+        var txOutput = TXOutput.newTXOutput(SUBSIDY, to);
         // 创建交易
-        Transaction tx = new Transaction(null, new TXInput[]{txInput},
+        var tx = new Transaction(null, new TXInput[]{txInput},
                 new TXOutput[]{txOutput}, System.currentTimeMillis());
         // 设置交易ID
         tx.setTxId(tx.hash());
@@ -115,35 +112,35 @@ public class Transaction {
      */
     public static Transaction newUTXOTransaction(String from, String to, int amount, Blockchain blockchain) throws Exception {
         // 获取钱包
-        Wallet senderWallet = WalletUtils.getInstance().getWallet(from);
-        byte[] pubKey = senderWallet.getPublicKey();
-        byte[] pubKeyHash = BtcAddressUtils.ripeMD160Hash(pubKey);
+        var senderWallet = WalletUtils.getInstance().getWallet(from);
+        var pubKey = senderWallet.getPublicKey();
+        var pubKeyHash = BtcAddressUtils.ripeMD160Hash(pubKey);
 
-        SpendableOutputResult result = new UTXOSet(blockchain).findSpendableOutputs(pubKeyHash, amount);
-        int accumulated = result.getAccumulated();
-        Map<String, int[]> unspentOuts = result.getUnspentOuts();
+        var result = new UTXOSet(blockchain).findSpendableOutputs(pubKeyHash, amount);
+        var accumulated = result.getAccumulated();
+        var unspentOuts = result.getUnspentOuts();
 
         if (accumulated < amount) {
             log.error("ERROR: Not enough funds ! accumulated=" + accumulated + ", amount=" + amount);
             throw new RuntimeException("ERROR: Not enough funds ! ");
         }
-        TXInput[] txInputs = {};
-        for (Map.Entry<String, int[]> entry: unspentOuts.entrySet()) {
-            String txIdStr = entry.getKey();
-            int[] outIds = entry.getValue();
-            byte[] txId = Hex.decodeHex(txIdStr);
-            for (int outIndex : outIds) {
+        var txInputs = new TXInput[0];
+        for (var entry: unspentOuts.entrySet()) {
+            var txIdStr = entry.getKey();
+            var outIds = entry.getValue();
+            var txId = Hex.decodeHex(txIdStr);
+            for (var outIndex : outIds) {
                 txInputs = ArrayUtils.add(txInputs, new TXInput(txId, outIndex, null, pubKey));
             }
         }
 
-        TXOutput[] txOutput = {};
+        var txOutput = new TXOutput[0];
         txOutput = ArrayUtils.add(txOutput, TXOutput.newTXOutput(amount, to));
         if (accumulated > amount) {
             txOutput = ArrayUtils.add(txOutput, TXOutput.newTXOutput((accumulated - amount), from));
         }
 
-        Transaction newTx = new Transaction(null, txInputs, txOutput, System.currentTimeMillis());
+        var newTx = new Transaction(null, txInputs, txOutput, System.currentTimeMillis());
         newTx.setTxId(newTx.hash());
 
         // 进行交易签名
@@ -196,8 +193,7 @@ public class Transaction {
         // 创建用于签名的交易信息的副本
         var txCopy = this.trimmedCopy();
 
-        Security.addProvider(new BouncyCastleProvider());
-        var ecdsaSign = Signature.getInstance("SHA256withECDSA", BouncyCastleProvider.PROVIDER_NAME);
+        var ecdsaSign = Signature.getInstance("SHA256withECDSA");
         ecdsaSign.initSign(privateKey);
 
         for (var i = 0; i < txCopy.getInputs().length; i++) {
@@ -245,10 +241,9 @@ public class Transaction {
         // 创建用于签名验证的交易信息的副本
         var txCopy = this.trimmedCopy();
 
-        Security.addProvider(new BouncyCastleProvider());
         var ecParameters = ECNamedCurveTable.getParameterSpec("secp256k1");
-        var keyFactory = KeyFactory.getInstance("ECDSA", BouncyCastleProvider.PROVIDER_NAME);
-        var ecdsaVerify = Signature.getInstance("SHA256withECDSA", BouncyCastleProvider.PROVIDER_NAME);
+        var keyFactory = KeyFactory.getInstance("ECDSA");
+        var ecdsaVerify = Signature.getInstance("SHA256withECDSA");
 
         for (var i = 0; i < this.getInputs().length; i++) {
             var txInput = this.getInputs()[i];

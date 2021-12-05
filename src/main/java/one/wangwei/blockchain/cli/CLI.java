@@ -209,7 +209,7 @@ public class CLI {
         var transaction = Transaction.newUTXOTransaction(from, to, amount, blockchain);
         // 奖励
         var rewardTx = Transaction.newCoinbaseTX(from, "");
-        var newBlock = blockchain.mineBlock(new Transaction[]{transaction, rewardTx});
+        var newBlock = blockchain.mineBlock(new Transaction[]{transaction, rewardTx}).orElseThrow();
         new UTXOSet(blockchain).update(newBlock);
         log.info("Success!");
     }
@@ -232,7 +232,7 @@ public class CLI {
      * 打印出区块链中的所有区块
      */
     private void printChain() {
-        for (var block: Blockchain.initBlockchainFromDB()) {
+        for (var block : Blockchain.initBlockchainFromDB()) {
             if (block != null) {
                 log.info(block + ", validate = " + ProofOfWork.newProofOfWork(block).validate());
             }

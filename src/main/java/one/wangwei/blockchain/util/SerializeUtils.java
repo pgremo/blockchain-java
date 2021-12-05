@@ -39,9 +39,9 @@ public class SerializeUtils {
      * @param bytes 对象对应的字节数组
      * @return
      */
-    public static Object deserialize(byte[] bytes) {
+    public static <T> T deserialize(byte[] bytes) {
         try (var input = new Input(bytes)) {
-            return kryo.readClassAndObject(input);
+            return (T) kryo.readClassAndObject(input);
         }
     }
 

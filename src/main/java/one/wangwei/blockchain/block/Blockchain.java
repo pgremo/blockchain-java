@@ -14,10 +14,7 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 
 /**
  * <p> 区块链 </p>
@@ -59,7 +56,7 @@ public class Blockchain implements Iterable<Block> {
             // 创建 coinBase 交易
             var genesisCoinbaseData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
             var coinbaseTX = Transaction.newCoinbaseTX(address, genesisCoinbaseData);
-            var genesisBlock = Block.newGenesisBlock(coinbaseTX);
+            var genesisBlock = Block.newGenesisBlock(coinbaseTX).orElseThrow();
             lastBlockHash = genesisBlock.getHash();
             RocksDBUtils.getInstance().putBlock(genesisBlock);
             RocksDBUtils.getInstance().putLastBlockHash(lastBlockHash);
@@ -71,8 +68,9 @@ public class Blockchain implements Iterable<Block> {
      * 打包交易，进行挖矿
      *
      * @param transactions
+     * @return
      */
-    public Block mineBlock(Transaction[] transactions) {
+    public Optional<Block> mineBlock(Transaction[] transactions) {
         // 挖矿前，先验证交易记录
         for (var tx : transactions) {
             if (!this.verifyTransactions(tx)) {
@@ -86,7 +84,7 @@ public class Blockchain implements Iterable<Block> {
         }
 
         var block = Block.newBlock(lastBlockHash, transactions);
-        this.addBlock(block);
+        block.ifPresent(this::addBlock);
         return block;
     }
 

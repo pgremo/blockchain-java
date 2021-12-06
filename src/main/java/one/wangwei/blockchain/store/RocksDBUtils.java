@@ -1,11 +1,12 @@
 package one.wangwei.blockchain.store;
 
-import com.google.common.collect.Maps;
 import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.util.SerializeUtils;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
+
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -84,7 +85,7 @@ public class RocksDBUtils {
             if (blockBucketBytes != null) {
                 blocksBucket = SerializeUtils.deserialize(blockBucketBytes);
             } else {
-                blocksBucket = Maps.newHashMap();
+                blocksBucket = new HashMap();
                 db.put(blockBucketKey, SerializeUtils.serialize(blocksBucket));
             }
         } catch (RocksDBException e) {
@@ -103,7 +104,7 @@ public class RocksDBUtils {
             if (chainstateBucketBytes != null) {
                 chainstateBucket = SerializeUtils.deserialize(chainstateBucketBytes);
             } else {
-                chainstateBucket = Maps.newHashMap();
+                chainstateBucket = new HashMap();
                 db.put(chainstateBucketKey, SerializeUtils.serialize(chainstateBucket));
             }
         } catch (RocksDBException e) {

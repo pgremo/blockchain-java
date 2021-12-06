@@ -1,6 +1,5 @@
 package one.wangwei.blockchain.wallet;
 
-import com.google.common.collect.Maps;
 import one.wangwei.blockchain.util.Base58Check;
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -8,6 +7,7 @@ import javax.crypto.CipherOutputStream;
 import javax.crypto.SealedObject;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -169,7 +169,7 @@ public class WalletUtils {
      */
     public static class Wallets implements Serializable {
         private static final long serialVersionUID = -2542070981569243131L;
-        private Map<String, Wallet> walletMap = Maps.newHashMap();
+        private Map<String, Wallet> walletMap = new HashMap();
 
         /**
          * 添加钱包

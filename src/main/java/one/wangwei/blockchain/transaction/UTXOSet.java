@@ -1,12 +1,13 @@
 package one.wangwei.blockchain.transaction;
 
-import com.google.common.collect.Maps;
 import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.block.Blockchain;
 import one.wangwei.blockchain.store.RocksDBUtils;
 import one.wangwei.blockchain.util.SerializeUtils;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.ArrayUtils;
+
+import java.util.HashMap;
 
 /**
  * 未被花费的交易输出池
@@ -28,7 +29,7 @@ public class UTXOSet {
      * @param amount     花费金额
      */
     public SpendableOutputResult findSpendableOutputs(byte[] pubKeyHash, int amount) {
-        var unspentOuts = Maps.<String, int[]>newHashMap();
+        var unspentOuts = new HashMap<String, int[]>();
         var accumulated = 0;
         var chainstateBucket = RocksDBUtils.getInstance().getChainstateBucket();
         for (var entry : chainstateBucket.entrySet()) {

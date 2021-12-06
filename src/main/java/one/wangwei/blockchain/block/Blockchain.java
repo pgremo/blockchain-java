@@ -1,6 +1,5 @@
 package one.wangwei.blockchain.block;
 
-import com.google.common.collect.Maps;
 import one.wangwei.blockchain.store.RocksDBUtils;
 import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
@@ -140,7 +139,7 @@ public class Blockchain implements Iterable<Block> {
      */
     public Map<String, TXOutput[]> findAllUTXOs() {
         var allSpentTXOs = this.getAllSpentTXOs();
-        var allUTXOs = Maps.<String, TXOutput[]>newHashMap();
+        var allUTXOs = new HashMap<String, TXOutput[]>();
         // 再次遍历所有区块中的交易输出
         for (var block : this) {
             for (var transaction : block.getTransactions()) {
@@ -171,7 +170,7 @@ public class Blockchain implements Iterable<Block> {
      */
     private Map<String, int[]> getAllSpentTXOs() {
         // 定义TxId ——> spentOutIndex[]，存储交易ID与已被花费的交易输出数组索引值
-        var spentTXOs = Maps.<String, int[]>newHashMap();
+        var spentTXOs = new HashMap<String, int[]>();
         for (var block : this) {
             for (var transaction : block.getTransactions()) {
                 // 如果是 coinbase 交易，直接跳过，因为它不存在引用前一个区块的交易输出
@@ -218,7 +217,7 @@ public class Blockchain implements Iterable<Block> {
      */
     public void signTransaction(Transaction tx, BCECPrivateKey privateKey) throws Exception {
         // 先来找到这笔新的交易中，交易输入所引用的前面的多笔交易的数据
-        var prevTxMap = Maps.<String, Transaction>newHashMap();
+        var prevTxMap = new HashMap<String, Transaction>();
         for (var txInput : tx.getInputs()) {
             var prevTx = this.findTransaction(txInput.getTxId());
             prevTxMap.put(Hex.encodeHexString(txInput.getTxId()), prevTx);
@@ -235,7 +234,7 @@ public class Blockchain implements Iterable<Block> {
         if (tx.isCoinbase()) {
             return true;
         }
-        var prevTx = Maps.<String, Transaction>newHashMap();
+        var prevTx = new HashMap<String, Transaction>();
         for (var txInput : tx.getInputs()) {
             var transaction = this.findTransaction(txInput.getTxId());
             prevTx.put(Hex.encodeHexString(txInput.getTxId()), transaction);

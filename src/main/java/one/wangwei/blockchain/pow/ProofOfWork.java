@@ -15,6 +15,7 @@ import java.util.LinkedList;
 import java.util.Optional;
 import java.util.stream.LongStream;
 
+import static java.math.BigInteger.ONE;
 import static java.time.Duration.between;
 import static java.time.Instant.now;
 import static java.util.Arrays.stream;
@@ -58,8 +59,7 @@ public class ProofOfWork {
      * @return
      */
     public static ProofOfWork newProofOfWork(Block block) {
-        var targetValue = BigInteger.valueOf(1).shiftLeft((256 - TARGET_BITS));
-        return new ProofOfWork(block, targetValue);
+        return new ProofOfWork(block, ONE.shiftLeft(256 - TARGET_BITS));
     }
 
     private byte[] hashTransactions() {
@@ -87,14 +87,14 @@ public class ProofOfWork {
      * @return
      */
     public Optional<PowResult> run() {
-        var startTime = now();
+        var start = now();
         return LongStream
                 .range(0, Long.MAX_VALUE)
                 .peek(x -> log.info("POW running, nonce={}", x))
                 .mapToObj(x -> new PowResult(x, sha256(prepareData(x))))
                 .filter(x -> new BigInteger(1, x.hash()).compareTo(target) < 0)
                 .peek(x -> {
-                    log.info("Elapsed Time: {} seconds \n", between(startTime, now()));
+                    log.info("Elapsed Time: {} seconds \n", between(start, now()));
                     log.info("correct hash Hex: {} \n", x.hash());
                 })
                 .findFirst();

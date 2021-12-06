@@ -12,8 +12,6 @@ import one.wangwei.blockchain.util.SerializeUtils;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.ArrayUtils;
 
-import java.util.Map;
-
 /**
  * 未被花费的交易输出池
  *

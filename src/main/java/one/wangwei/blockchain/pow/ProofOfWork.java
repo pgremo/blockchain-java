@@ -3,12 +3,15 @@ package one.wangwei.blockchain.pow;
 import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.ByteUtils;
-import org.apache.commons.lang3.StringUtils;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.stream.LongStream;
+
 import static java.math.BigInteger.ONE;
 import static java.time.Duration.between;
 import static java.time.Instant.now;
@@ -101,8 +104,20 @@ public class ProofOfWork {
      * @return
      */
     private byte[] prepareData(long nonce) {
-        var prevBlockHashBytes = StringUtils.isNoneBlank(block.getPrevBlockHash()) ? new BigInteger(block.getPrevBlockHash(), 16).toByteArray() : new byte[0];
-        return ByteUtils.merge(prevBlockHashBytes, hashTransactions(), ByteUtils.toBytes(block.getTimeStamp()), ByteUtils.toBytes(TARGET_BITS), ByteUtils.toBytes(nonce));
+        var prevBlockHashBytes = block.getPrevBlockHash().isBlank() ?
+                new byte[0] :
+                new BigInteger(block.getPrevBlockHash(), 16).toByteArray();
+
+        try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
+            stream.write(prevBlockHashBytes);
+            stream.write(hashTransactions());
+            stream.write(ByteUtils.toBytes(block.getTimeStamp()));
+            stream.write(ByteUtils.toBytes(TARGET_BITS));
+            stream.write(ByteUtils.toBytes(nonce));
+            return stream.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**

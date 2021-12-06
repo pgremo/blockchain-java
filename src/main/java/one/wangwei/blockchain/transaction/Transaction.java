@@ -6,15 +6,15 @@ import one.wangwei.blockchain.util.SerializeUtils;
 import one.wangwei.blockchain.wallet.WalletUtils;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.spec.ECPublicKeySpec;
+
 import java.math.BigInteger;
 import java.security.KeyFactory;
 import java.security.Signature;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.Map;
 
 /**
@@ -65,7 +65,7 @@ public class Transaction {
      * @return
      */
     public static Transaction newCoinbaseTX(String to, String data) {
-        if (StringUtils.isBlank(data)) {
+        if (data.isBlank()) {
             data = String.format("Reward to \'%s\'", to);
         }
         // 创建交易输入
@@ -109,21 +109,21 @@ public class Transaction {
             log.error("ERROR: Not enough funds ! accumulated=" + accumulated + ", amount=" + amount);
             throw new RuntimeException("ERROR: Not enough funds ! ");
         }
-        var txInputs = new TXInput[0];
+        var txInputs = new LinkedList<TXInput>();
         for (var entry : unspentOuts.entrySet()) {
             var txIdStr = entry.getKey();
             var outIds = entry.getValue();
             var txId = Hex.decodeHex(txIdStr);
             for (var outIndex : outIds) {
-                txInputs = ArrayUtils.add(txInputs, new TXInput(txId, outIndex, null, pubKey));
+                txInputs.add(new TXInput(txId, outIndex, null, pubKey));
             }
         }
-        var txOutput = new TXOutput[0];
-        txOutput = ArrayUtils.add(txOutput, TXOutput.newTXOutput(amount, to));
+        var txOutput = new LinkedList<TXOutput>();
+        txOutput.add(TXOutput.newTXOutput(amount, to));
         if (accumulated > amount) {
-            txOutput = ArrayUtils.add(txOutput, TXOutput.newTXOutput((accumulated - amount), from));
+            txOutput.add(TXOutput.newTXOutput((accumulated - amount), from));
         }
-        var newTx = new Transaction(null, txInputs, txOutput, System.currentTimeMillis());
+        var newTx = new Transaction(null, txInputs.toArray(TXInput[]::new), txOutput.toArray(TXOutput[]::new), System.currentTimeMillis());
         newTx.setTxId(newTx.hash());
         // 进行交易签名
         blockchain.signTransaction(newTx, senderWallet.getPrivateKey());

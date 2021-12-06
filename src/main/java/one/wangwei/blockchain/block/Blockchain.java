@@ -5,8 +5,6 @@ import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.ByteUtils;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import java.util.*;
 
@@ -42,7 +40,7 @@ public class Blockchain implements Iterable<Block> {
      */
     public static Blockchain createBlockchain(String address) {
         var lastBlockHash = RocksDBUtils.getInstance().getLastBlockHash();
-        if (StringUtils.isBlank(lastBlockHash)) {
+        if (lastBlockHash.isBlank()) {
             // 创建 coinBase 交易
             var genesisCoinbaseData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
             var coinbaseTX = Transaction.newCoinbaseTX(address, genesisCoinbaseData);
@@ -137,9 +135,9 @@ public class Blockchain implements Iterable<Block> {
      *
      * @return
      */
-    public Map<String, TXOutput[]> findAllUTXOs() {
+    public HashMap<String, List<TXOutput>> findAllUTXOs() {
         var allSpentTXOs = this.getAllSpentTXOs();
-        var allUTXOs = new HashMap<String, TXOutput[]>();
+        var allUTXOs = new HashMap<String, List<TXOutput>>();
         // 再次遍历所有区块中的交易输出
         for (var block : this) {
             for (var transaction : block.getTransactions()) {
@@ -147,16 +145,12 @@ public class Blockchain implements Iterable<Block> {
                 var spentOutIndexArray = allSpentTXOs.get(txId);
                 var txOutputs = transaction.getOutputs();
                 for (var outIndex = 0; outIndex < txOutputs.length; outIndex++) {
-                    if (spentOutIndexArray != null && ArrayUtils.contains(spentOutIndexArray, outIndex)) {
+                    if (spentOutIndexArray != null && spentOutIndexArray.contains(outIndex)) {
                         continue;
                     }
-                    var UTXOArray = allUTXOs.get(txId);
-                    if (UTXOArray == null) {
-                        UTXOArray = new TXOutput[] {txOutputs[outIndex]};
-                    } else {
-                        UTXOArray = ArrayUtils.add(UTXOArray, txOutputs[outIndex]);
-                    }
-                    allUTXOs.put(txId, UTXOArray);
+                    allUTXOs
+                            .computeIfAbsent(txId, x -> new LinkedList<>())
+                            .add(txOutputs[outIndex]);
                 }
             }
         }
@@ -168,9 +162,9 @@ public class Blockchain implements Iterable<Block> {
      *
      * @return 交易ID以及对应的交易输出下标地址
      */
-    private Map<String, int[]> getAllSpentTXOs() {
+    private Map<String, List<Integer>> getAllSpentTXOs() {
         // 定义TxId ——> spentOutIndex[]，存储交易ID与已被花费的交易输出数组索引值
-        var spentTXOs = new HashMap<String, int[]>();
+        var spentTXOs = new HashMap<String, List<Integer>>();
         for (var block : this) {
             for (var transaction : block.getTransactions()) {
                 // 如果是 coinbase 交易，直接跳过，因为它不存在引用前一个区块的交易输出
@@ -179,13 +173,8 @@ public class Blockchain implements Iterable<Block> {
                 }
                 for (var txInput : transaction.getInputs()) {
                     var inTxId = Hex.encodeHexString(txInput.getTxId());
-                    var spentOutIndexArray = spentTXOs.get(inTxId);
-                    if (spentOutIndexArray == null) {
-                        spentOutIndexArray = new int[] {txInput.getTxOutputIndex()};
-                    } else {
-                        spentOutIndexArray = ArrayUtils.add(spentOutIndexArray, txInput.getTxOutputIndex());
-                    }
-                    spentTXOs.put(inTxId, spentOutIndexArray);
+                    var spentOutIndexArray = spentTXOs.computeIfAbsent(inTxId, x -> new LinkedList<>());
+                    spentOutIndexArray.add(txInput.getTxOutputIndex());
                 }
             }
         }

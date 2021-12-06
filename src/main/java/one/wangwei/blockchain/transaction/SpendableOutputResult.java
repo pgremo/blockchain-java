@@ -1,5 +1,6 @@
 package one.wangwei.blockchain.transaction;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -16,7 +17,7 @@ public class SpendableOutputResult {
     /**
      * 未花费的交易
      */
-    private Map<String, int[]> unspentOuts;
+    private Map<String, List<Integer>> unspentOuts;
 
     /**
      * 交易时的支付金额
@@ -30,7 +31,7 @@ public class SpendableOutputResult {
      * 未花费的交易
      */
     @SuppressWarnings("all")
-    public Map<String, int[]> getUnspentOuts() {
+    public Map<String, List<Integer>> getUnspentOuts() {
         return this.unspentOuts;
     }
 
@@ -46,7 +47,7 @@ public class SpendableOutputResult {
      * 未花费的交易
      */
     @SuppressWarnings("all")
-    public void setUnspentOuts(final Map<String, int[]> unspentOuts) {
+    public void setUnspentOuts(final Map<String, List<Integer>> unspentOuts) {
         this.unspentOuts = unspentOuts;
     }
 
@@ -87,7 +88,7 @@ public class SpendableOutputResult {
     }
 
     @SuppressWarnings("all")
-    public SpendableOutputResult(final int accumulated, final Map<String, int[]> unspentOuts) {
+    public SpendableOutputResult(final int accumulated, final Map<String, List<Integer>> unspentOuts) {
         this.accumulated = accumulated;
         this.unspentOuts = unspentOuts;
     }

@@ -5,9 +5,10 @@ import one.wangwei.blockchain.block.Blockchain;
 import one.wangwei.blockchain.store.RocksDBUtils;
 import one.wangwei.blockchain.util.SerializeUtils;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * 未被花费的交易输出池
@@ -29,7 +30,7 @@ public class UTXOSet {
      * @param amount     花费金额
      */
     public SpendableOutputResult findSpendableOutputs(byte[] pubKeyHash, int amount) {
-        var unspentOuts = new HashMap<String, int[]>();
+        var unspentOuts = new HashMap<String, List<Integer>>();
         var accumulated = 0;
         var chainstateBucket = RocksDBUtils.getInstance().getChainstateBucket();
         for (var entry : chainstateBucket.entrySet()) {
@@ -39,13 +40,8 @@ public class UTXOSet {
                 var txOutput = txOutputs[outId];
                 if (txOutput.isLockedWithKey(pubKeyHash) && accumulated < amount) {
                     accumulated += txOutput.getValue();
-                    var outIds = unspentOuts.get(txId);
-                    if (outIds == null) {
-                        outIds = new int[] {outId};
-                    } else {
-                        outIds = ArrayUtils.add(outIds, outId);
-                    }
-                    unspentOuts.put(txId, outIds);
+                    var outIds = unspentOuts.computeIfAbsent(txId, x -> new LinkedList<>());
+                    outIds.add(outId);
                     if (accumulated >= amount) {
                         break;
                     }
@@ -61,8 +57,8 @@ public class UTXOSet {
      * @param pubKeyHash 钱包公钥Hash
      * @return
      */
-    public TXOutput[] findUTXOs(byte[] pubKeyHash) {
-        var utxos = new TXOutput[0];
+    public List<TXOutput> findUTXOs(byte[] pubKeyHash) {
+        var utxos = new LinkedList<TXOutput>();
         var chainstateBucket = RocksDBUtils.getInstance().getChainstateBucket();
         if (chainstateBucket.isEmpty()) {
             return utxos;
@@ -71,7 +67,7 @@ public class UTXOSet {
             var txOutputs = (TXOutput[]) SerializeUtils.deserialize(value);
             for (var txOutput : txOutputs) {
                 if (txOutput.isLockedWithKey(pubKeyHash)) {
-                    utxos = ArrayUtils.add(utxos, txOutput);
+                    utxos.add(txOutput);
                 }
             }
         }
@@ -87,7 +83,7 @@ public class UTXOSet {
             RocksDBUtils.getInstance().cleanChainStateBucket();
             var allUTXOs = blockchain.findAllUTXOs();
             for (var entry : allUTXOs.entrySet()) {
-                RocksDBUtils.getInstance().putUTXOs(entry.getKey(), entry.getValue());
+                RocksDBUtils.getInstance().putUTXOs(entry.getKey(), entry.getValue().toArray(TXOutput[]::new));
             }
             log.info("ReIndex UTXO set finished ! ");
         }
@@ -113,7 +109,7 @@ public class UTXOSet {
                 if (!transaction.isCoinbase()) {
                     for (var txInput : transaction.getInputs()) {
                         // 余下未被使用的交易输出
-                        var remainderUTXOs = new TXOutput[0];
+                        var remainderUTXOs = new LinkedList<TXOutput>();
                         var txId = Hex.encodeHexString(txInput.getTxId());
                         var txOutputs = RocksDBUtils.getInstance().getUTXOs(txId);
                         if (txOutputs == null) {
@@ -121,14 +117,14 @@ public class UTXOSet {
                         }
                         for (var outIndex = 0; outIndex < txOutputs.length; outIndex++) {
                             if (outIndex != txInput.getTxOutputIndex()) {
-                                remainderUTXOs = ArrayUtils.add(remainderUTXOs, txOutputs[outIndex]);
+                                remainderUTXOs.add(txOutputs[outIndex]);
                             }
                         }
                         // 没有剩余则删除，否则更新
-                        if (remainderUTXOs.length == 0) {
+                        if (remainderUTXOs.isEmpty()) {
                             RocksDBUtils.getInstance().deleteUTXOs(txId);
                         } else {
-                            RocksDBUtils.getInstance().putUTXOs(txId, remainderUTXOs);
+                            RocksDBUtils.getInstance().putUTXOs(txId, remainderUTXOs.toArray(TXOutput[]::new));
                         }
                     }
                 }

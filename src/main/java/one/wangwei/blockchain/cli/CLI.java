@@ -6,11 +6,12 @@ import one.wangwei.blockchain.store.RocksDBUtils;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.transaction.UTXOSet;
 import one.wangwei.blockchain.util.Base58Check;
+import one.wangwei.blockchain.util.Numbers;
 import one.wangwei.blockchain.wallet.WalletUtils;
 import org.apache.commons.cli.*;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.math.NumberUtils;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import java.security.Security;
 import java.util.Arrays;
 
 /**
@@ -24,6 +25,10 @@ public class CLI {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CLI.class);
     private String[] args;
     private Options options = new Options();
+
+    static{
+        Security.addProvider(new BouncyCastleProvider());
+    }
 
     public CLI(String[] args) {
         this.args = args;
@@ -45,31 +50,31 @@ public class CLI {
     public void parse() {
         this.validateArgs(args);
         try {
-            CommandLineParser parser = new DefaultParser();
-            CommandLine cmd = parser.parse(options, args);
+            DefaultParser parser = new DefaultParser();
+            var cmd = parser.parse(options, args);
             switch (args[0]) {
                 case "createblockchain" -> {
-                    String createblockchainAddress = cmd.getOptionValue("address");
-                    if (StringUtils.isBlank(createblockchainAddress)) {
+                    var createblockchainAddress = cmd.getOptionValue("address");
+                    if (createblockchainAddress.isBlank()) {
                         help();
                     }
                     this.createBlockchain(createblockchainAddress);
                 }
                 case "getbalance" -> {
-                    String getBalanceAddress = cmd.getOptionValue("address");
-                    if (StringUtils.isBlank(getBalanceAddress)) {
+                    var getBalanceAddress = cmd.getOptionValue("address");
+                    if (getBalanceAddress.isBlank()) {
                         help();
                     }
                     this.getBalance(getBalanceAddress);
                 }
                 case "send" -> {
-                    String sendFrom = cmd.getOptionValue("from");
-                    String sendTo = cmd.getOptionValue("to");
-                    String sendAmount = cmd.getOptionValue("amount");
-                    if (StringUtils.isBlank(sendFrom) || StringUtils.isBlank(sendTo) || !NumberUtils.isDigits(sendAmount)) {
+                    var sendFrom = cmd.getOptionValue("from");
+                    var sendTo = cmd.getOptionValue("to");
+                    var sendAmount = Numbers.parseInteger(cmd.getOptionValue("amount"));
+                    if (sendFrom.isBlank() || sendTo.isBlank() || sendAmount.isEmpty()) {
                         help();
                     }
-                    this.send(sendFrom, sendTo, Integer.valueOf(sendAmount));
+                    this.send(sendFrom, sendTo, sendAmount.orElseThrow());
                 }
                 case "createwallet" -> this.createWallet();
                 case "printaddresses" -> this.printAddresses();
@@ -151,7 +156,7 @@ public class CLI {
         var utxoSet = new UTXOSet(blockchain);
         var txOutputs = utxoSet.findUTXOs(pubKeyHash);
         var balance = 0;
-        if (txOutputs != null && txOutputs.length > 0) {
+        if (txOutputs != null && !txOutputs.isEmpty()) {
             for (var txOutput : txOutputs) {
                 balance += txOutput.getValue();
             }

@@ -1,14 +1,11 @@
 package one.wangwei.blockchain.store;
 
 import com.google.common.collect.Maps;
-import lombok.Getter;
-import lombok.extern.slf4j.Slf4j;
 import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.util.SerializeUtils;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
-
 import java.util.Map;
 
 /**
@@ -17,9 +14,9 @@ import java.util.Map;
  * @author wangwei
  * @date 2018/02/27
  */
-@Slf4j
 public class RocksDBUtils {
-
+    @SuppressWarnings("all")
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RocksDBUtils.class);
     /**
      * 区块链数据文件
      */
@@ -32,13 +29,11 @@ public class RocksDBUtils {
      * 链状态桶Key
      */
     private static final String CHAINSTATE_BUCKET_KEY = "chainstate";
-
     /**
      * 最新一个区块
      */
     private static final String LAST_BLOCK_KEY = "l";
-
-    private volatile static RocksDBUtils instance;
+    private static volatile RocksDBUtils instance;
 
     public static RocksDBUtils getInstance() {
         if (instance == null) {
@@ -52,7 +47,6 @@ public class RocksDBUtils {
     }
 
     private RocksDB db;
-
     /**
      * block buckets
      */
@@ -60,7 +54,6 @@ public class RocksDBUtils {
     /**
      * chainstate buckets
      */
-    @Getter
     private Map<String, byte[]> chainstateBucket;
 
     private RocksDBUtils() {
@@ -176,7 +169,6 @@ public class RocksDBUtils {
         throw new RuntimeException("Fail to get block ! blockHash=" + blockHash);
     }
 
-
     /**
      * 清空chainstate bucket
      */
@@ -205,7 +197,6 @@ public class RocksDBUtils {
         }
     }
 
-
     /**
      * 查询UTXO数据
      *
@@ -218,7 +209,6 @@ public class RocksDBUtils {
         }
         return null;
     }
-
 
     /**
      * 删除 UTXO 数据
@@ -245,5 +235,13 @@ public class RocksDBUtils {
             log.error("Fail to close db ! ", e);
             throw new RuntimeException("Fail to close db ! ", e);
         }
+    }
+
+    /**
+     * chainstate buckets
+     */
+    @SuppressWarnings("all")
+    public Map<String, byte[]> getChainstateBucket() {
+        return this.chainstateBucket;
     }
 }

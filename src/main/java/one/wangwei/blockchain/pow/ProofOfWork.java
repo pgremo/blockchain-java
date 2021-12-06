@@ -1,20 +1,14 @@
 package one.wangwei.blockchain.pow;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.ByteUtils;
 import org.apache.commons.lang3.StringUtils;
-
 import java.math.BigInteger;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.stream.LongStream;
-
 import static java.math.BigInteger.ONE;
 import static java.time.Duration.between;
 import static java.time.Instant.now;
@@ -29,17 +23,13 @@ import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
  * @author wangwei
  * @date 2018/02/04
  */
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Slf4j
 public class ProofOfWork {
-
+    @SuppressWarnings("all")
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProofOfWork.class);
     /**
      * 难度目标位
      */
     public static final int TARGET_BITS = 16;
-
     /**
      * 区块
      */
@@ -48,7 +38,6 @@ public class ProofOfWork {
      * 难度目标值
      */
     private BigInteger target;
-
 
     /**
      * 创建新的工作量证明，设定难度目标值
@@ -88,16 +77,10 @@ public class ProofOfWork {
      */
     public Optional<PowResult> run() {
         var start = now();
-        return LongStream
-                .range(0, Long.MAX_VALUE)
-                .peek(x -> log.info("POW running, nonce={}", x))
-                .mapToObj(x -> new PowResult(x, sha256(prepareData(x))))
-                .filter(x -> new BigInteger(1, x.hash()).compareTo(target) < 0)
-                .peek(x -> {
-                    log.info("Elapsed Time: {} seconds \n", between(start, now()));
-                    log.info("correct hash Hex: {} \n", x.hash());
-                })
-                .findFirst();
+        return LongStream.range(0, Long.MAX_VALUE).peek(x -> log.info("POW running, nonce={}", x)).mapToObj(x -> new PowResult(x, sha256(prepareData(x)))).filter(x -> new BigInteger(1, x.hash()).compareTo(target) < 0).peek(x -> {
+            log.info("Elapsed Time: {} seconds \n", between(start, now()));
+            log.info("correct hash Hex: {} \n", x.hash());
+        }).findFirst();
     }
 
     /**
@@ -106,10 +89,7 @@ public class ProofOfWork {
      * @return
      */
     public boolean validate() {
-        return new BigInteger(
-                sha256Hex(prepareData(block.getNonce())),
-                16
-        ).compareTo(target) < 0;
+        return new BigInteger(sha256Hex(prepareData(block.getNonce())), 16).compareTo(target) < 0;
     }
 
     /**
@@ -121,17 +101,88 @@ public class ProofOfWork {
      * @return
      */
     private byte[] prepareData(long nonce) {
-        var prevBlockHashBytes = StringUtils.isNoneBlank(block.getPrevBlockHash()) ?
-                new BigInteger(block.getPrevBlockHash(), 16).toByteArray() :
-                new byte[0];
-
-        return ByteUtils.merge(
-                prevBlockHashBytes,
-                hashTransactions(),
-                ByteUtils.toBytes(block.getTimeStamp()),
-                ByteUtils.toBytes(TARGET_BITS),
-                ByteUtils.toBytes(nonce)
-        );
+        var prevBlockHashBytes = StringUtils.isNoneBlank(block.getPrevBlockHash()) ? new BigInteger(block.getPrevBlockHash(), 16).toByteArray() : new byte[0];
+        return ByteUtils.merge(prevBlockHashBytes, hashTransactions(), ByteUtils.toBytes(block.getTimeStamp()), ByteUtils.toBytes(TARGET_BITS), ByteUtils.toBytes(nonce));
     }
 
+    /**
+     * 区块
+     */
+    @SuppressWarnings("all")
+    public Block getBlock() {
+        return this.block;
+    }
+
+    /**
+     * 难度目标值
+     */
+    @SuppressWarnings("all")
+    public BigInteger getTarget() {
+        return this.target;
+    }
+
+    /**
+     * 区块
+     */
+    @SuppressWarnings("all")
+    public void setBlock(final Block block) {
+        this.block = block;
+    }
+
+    /**
+     * 难度目标值
+     */
+    @SuppressWarnings("all")
+    public void setTarget(final BigInteger target) {
+        this.target = target;
+    }
+
+    @Override
+    @SuppressWarnings("all")
+    public boolean equals(final Object o) {
+        if (o == this) return true;
+        if (!(o instanceof ProofOfWork)) return false;
+        final ProofOfWork other = (ProofOfWork) o;
+        if (!other.canEqual((Object) this)) return false;
+        final Object this$block = this.getBlock();
+        final Object other$block = other.getBlock();
+        if (this$block == null ? other$block != null : !this$block.equals(other$block)) return false;
+        final Object this$target = this.getTarget();
+        final Object other$target = other.getTarget();
+        if (this$target == null ? other$target != null : !this$target.equals(other$target)) return false;
+        return true;
+    }
+
+    @SuppressWarnings("all")
+    protected boolean canEqual(final Object other) {
+        return other instanceof ProofOfWork;
+    }
+
+    @Override
+    @SuppressWarnings("all")
+    public int hashCode() {
+        final int PRIME = 59;
+        int result = 1;
+        final Object $block = this.getBlock();
+        result = result * PRIME + ($block == null ? 43 : $block.hashCode());
+        final Object $target = this.getTarget();
+        result = result * PRIME + ($target == null ? 43 : $target.hashCode());
+        return result;
+    }
+
+    @Override
+    @SuppressWarnings("all")
+    public String toString() {
+        return "ProofOfWork(block=" + this.getBlock() + ", target=" + this.getTarget() + ")";
+    }
+
+    @SuppressWarnings("all")
+    public ProofOfWork(final Block block, final BigInteger target) {
+        this.block = block;
+        this.target = target;
+    }
+
+    @SuppressWarnings("all")
+    public ProofOfWork() {
+    }
 }

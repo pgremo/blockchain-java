@@ -1,6 +1,5 @@
 package one.wangwei.blockchain.cli;
 
-import lombok.extern.slf4j.Slf4j;
 import one.wangwei.blockchain.block.Blockchain;
 import one.wangwei.blockchain.pow.ProofOfWork;
 import one.wangwei.blockchain.store.RocksDBUtils;
@@ -20,23 +19,20 @@ import java.util.Arrays;
  * @author wangwei
  * @date 2018/03/08
  */
-@Slf4j
 public class CLI {
-
+    @SuppressWarnings("all")
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CLI.class);
     private String[] args;
     private Options options = new Options();
 
     public CLI(String[] args) {
         this.args = args;
-
         Option helpCmd = Option.builder("h").desc("show help").build();
         options.addOption(helpCmd);
-
         Option address = Option.builder("address").hasArg(true).desc("Source wallet address").build();
         Option sendFrom = Option.builder("from").hasArg(true).desc("Source wallet address").build();
         Option sendTo = Option.builder("to").hasArg(true).desc("Destination wallet address").build();
         Option sendAmount = Option.builder("amount").hasArg(true).desc("Amount to send").build();
-
         options.addOption(address);
         options.addOption(sendFrom);
         options.addOption(sendTo);
@@ -52,45 +48,34 @@ public class CLI {
             CommandLineParser parser = new DefaultParser();
             CommandLine cmd = parser.parse(options, args);
             switch (args[0]) {
-                case "createblockchain":
+                case "createblockchain" -> {
                     String createblockchainAddress = cmd.getOptionValue("address");
                     if (StringUtils.isBlank(createblockchainAddress)) {
                         help();
                     }
                     this.createBlockchain(createblockchainAddress);
-                    break;
-                case "getbalance":
+                }
+                case "getbalance" -> {
                     String getBalanceAddress = cmd.getOptionValue("address");
                     if (StringUtils.isBlank(getBalanceAddress)) {
                         help();
                     }
                     this.getBalance(getBalanceAddress);
-                    break;
-                case "send":
+                }
+                case "send" -> {
                     String sendFrom = cmd.getOptionValue("from");
                     String sendTo = cmd.getOptionValue("to");
                     String sendAmount = cmd.getOptionValue("amount");
-                    if (StringUtils.isBlank(sendFrom) ||
-                            StringUtils.isBlank(sendTo) ||
-                            !NumberUtils.isDigits(sendAmount)) {
+                    if (StringUtils.isBlank(sendFrom) || StringUtils.isBlank(sendTo) || !NumberUtils.isDigits(sendAmount)) {
                         help();
                     }
                     this.send(sendFrom, sendTo, Integer.valueOf(sendAmount));
-                    break;
-                case "createwallet":
-                    this.createWallet();
-                    break;
-                case "printaddresses":
-                    this.printAddresses();
-                    break;
-                case "printchain":
-                    this.printChain();
-                    break;
-                case "h":
-                    this.help();
-                    break;
-                default:
-                    this.help();
+                }
+                case "createwallet" -> this.createWallet();
+                case "printaddresses" -> this.printAddresses();
+                case "printchain" -> this.printChain();
+                case "h" -> this.help();
+                default -> this.help();
             }
         } catch (Exception e) {
             log.error("Fail to parse cli command ! ", e);
@@ -138,7 +123,7 @@ public class CLI {
     private void printAddresses() {
         var addresses = WalletUtils.getInstance().getAddresses();
         if (addresses == null || addresses.isEmpty()) {
-            log.info("There isn't address");
+            log.info("There isn\'t address");
             return;
         }
         for (var address : addresses) {
@@ -159,14 +144,11 @@ public class CLI {
             log.error("ERROR: invalid wallet address", e);
             throw new RuntimeException("ERROR: invalid wallet address", e);
         }
-
         // 得到公钥Hash值
         var versionedPayload = Base58Check.base58ToBytes(address);
         var pubKeyHash = Arrays.copyOfRange(versionedPayload, 1, versionedPayload.length);
-
         var blockchain = Blockchain.createBlockchain(address);
         var utxoSet = new UTXOSet(blockchain);
-
         var txOutputs = utxoSet.findUTXOs(pubKeyHash);
         var balance = 0;
         if (txOutputs != null && txOutputs.length > 0) {
@@ -174,7 +156,7 @@ public class CLI {
                 balance += txOutput.getValue();
             }
         }
-        log.info("Balance of '{}': {}\n", address, balance);
+        log.info("Balance of \'{}\': {}\n", address, balance);
     }
 
     /**
@@ -209,7 +191,7 @@ public class CLI {
         var transaction = Transaction.newUTXOTransaction(from, to, amount, blockchain);
         // 奖励
         var rewardTx = Transaction.newCoinbaseTX(from, "");
-        var newBlock = blockchain.mineBlock(new Transaction[]{transaction, rewardTx}).orElseThrow();
+        var newBlock = blockchain.mineBlock(new Transaction[] {transaction, rewardTx}).orElseThrow();
         new UTXOSet(blockchain).update(newBlock);
         log.info("Success!");
     }
@@ -238,5 +220,4 @@ public class CLI {
             }
         }
     }
-
 }

@@ -1,10 +1,6 @@
 package one.wangwei.blockchain.block;
 
 import com.google.common.collect.Maps;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import one.wangwei.blockchain.store.RocksDBUtils;
 import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
@@ -13,7 +9,6 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
-
 import java.util.*;
 
 /**
@@ -22,14 +17,10 @@ import java.util.*;
  * @author wangwei
  * @date 2018/02/02
  */
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Slf4j
 public class Blockchain implements Iterable<Block> {
-
+    @SuppressWarnings("all")
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(Blockchain.class);
     private String lastBlockHash;
-
 
     /**
      * 从 DB 中恢复区块链数据
@@ -82,7 +73,6 @@ public class Blockchain implements Iterable<Block> {
         if (lastBlockHash == null) {
             throw new RuntimeException("ERROR: Fail to get last block hash ! ");
         }
-
         var block = Block.newBlock(lastBlockHash, transactions);
         block.ifPresent(this::addBlock);
         return block;
@@ -104,7 +94,6 @@ public class Blockchain implements Iterable<Block> {
      * 区块链迭代器
      */
     public static class BlockchainIterator implements Iterator<Block> {
-
         private String currentBlockHash;
 
         private BlockchainIterator(String currentBlockHash) {
@@ -119,7 +108,6 @@ public class Blockchain implements Iterable<Block> {
         public boolean hasNext() {
             return !currentBlockHash.equals(ByteUtils.ZERO_HASH);
         }
-
 
         /**
          * 返回区块
@@ -154,11 +142,9 @@ public class Blockchain implements Iterable<Block> {
         var allSpentTXOs = this.getAllSpentTXOs();
         var allUTXOs = Maps.<String, TXOutput[]>newHashMap();
         // 再次遍历所有区块中的交易输出
-        for (var block: this) {
+        for (var block : this) {
             for (var transaction : block.getTransactions()) {
-
                 var txId = Hex.encodeHexString(transaction.getTxId());
-
                 var spentOutIndexArray = allSpentTXOs.get(txId);
                 var txOutputs = transaction.getOutputs();
                 for (var outIndex = 0; outIndex < txOutputs.length; outIndex++) {
@@ -167,7 +153,7 @@ public class Blockchain implements Iterable<Block> {
                     }
                     var UTXOArray = allUTXOs.get(txId);
                     if (UTXOArray == null) {
-                        UTXOArray = new TXOutput[]{txOutputs[outIndex]};
+                        UTXOArray = new TXOutput[] {txOutputs[outIndex]};
                     } else {
                         UTXOArray = ArrayUtils.add(UTXOArray, txOutputs[outIndex]);
                     }
@@ -186,8 +172,7 @@ public class Blockchain implements Iterable<Block> {
     private Map<String, int[]> getAllSpentTXOs() {
         // 定义TxId ——> spentOutIndex[]，存储交易ID与已被花费的交易输出数组索引值
         var spentTXOs = Maps.<String, int[]>newHashMap();
-        for (var block: this) {
-
+        for (var block : this) {
             for (var transaction : block.getTransactions()) {
                 // 如果是 coinbase 交易，直接跳过，因为它不存在引用前一个区块的交易输出
                 if (transaction.isCoinbase()) {
@@ -197,7 +182,7 @@ public class Blockchain implements Iterable<Block> {
                     var inTxId = Hex.encodeHexString(txInput.getTxId());
                     var spentOutIndexArray = spentTXOs.get(inTxId);
                     if (spentOutIndexArray == null) {
-                        spentOutIndexArray = new int[]{txInput.getTxOutputIndex()};
+                        spentOutIndexArray = new int[] {txInput.getTxOutputIndex()};
                     } else {
                         spentOutIndexArray = ArrayUtils.add(spentOutIndexArray, txInput.getTxOutputIndex());
                     }
@@ -208,7 +193,6 @@ public class Blockchain implements Iterable<Block> {
         return spentTXOs;
     }
 
-
     /**
      * 依据交易ID查询交易信息
      *
@@ -216,7 +200,7 @@ public class Blockchain implements Iterable<Block> {
      * @return
      */
     private Transaction findTransaction(byte[] txId) {
-        for (var block: this) {
+        for (var block : this) {
             for (var tx : block.getTransactions()) {
                 if (Arrays.equals(tx.getTxId(), txId)) {
                     return tx;
@@ -225,7 +209,6 @@ public class Blockchain implements Iterable<Block> {
         }
         throw new RuntimeException("ERROR: Can not found tx by txId ! ");
     }
-
 
     /**
      * 进行交易签名
@@ -263,5 +246,58 @@ public class Blockchain implements Iterable<Block> {
             log.error("Fail to verify transaction ! transaction invalid ! ", e);
             throw new RuntimeException("Fail to verify transaction ! transaction invalid ! ", e);
         }
+    }
+
+    @SuppressWarnings("all")
+    public String getLastBlockHash() {
+        return this.lastBlockHash;
+    }
+
+    @SuppressWarnings("all")
+    public void setLastBlockHash(final String lastBlockHash) {
+        this.lastBlockHash = lastBlockHash;
+    }
+
+    @Override
+    @SuppressWarnings("all")
+    public boolean equals(final Object o) {
+        if (o == this) return true;
+        if (!(o instanceof Blockchain)) return false;
+        final Blockchain other = (Blockchain) o;
+        if (!other.canEqual((Object) this)) return false;
+        final Object this$lastBlockHash = this.getLastBlockHash();
+        final Object other$lastBlockHash = other.getLastBlockHash();
+        if (this$lastBlockHash == null ? other$lastBlockHash != null : !this$lastBlockHash.equals(other$lastBlockHash)) return false;
+        return true;
+    }
+
+    @SuppressWarnings("all")
+    protected boolean canEqual(final Object other) {
+        return other instanceof Blockchain;
+    }
+
+    @Override
+    @SuppressWarnings("all")
+    public int hashCode() {
+        final int PRIME = 59;
+        int result = 1;
+        final Object $lastBlockHash = this.getLastBlockHash();
+        result = result * PRIME + ($lastBlockHash == null ? 43 : $lastBlockHash.hashCode());
+        return result;
+    }
+
+    @Override
+    @SuppressWarnings("all")
+    public String toString() {
+        return "Blockchain(lastBlockHash=" + this.getLastBlockHash() + ")";
+    }
+
+    @SuppressWarnings("all")
+    public Blockchain(final String lastBlockHash) {
+        this.lastBlockHash = lastBlockHash;
+    }
+
+    @SuppressWarnings("all")
+    public Blockchain() {
     }
 }

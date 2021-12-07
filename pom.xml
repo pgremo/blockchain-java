@@ -26,11 +26,6 @@
             <artifactId>commons-cli</artifactId>
             <version>1.5.0</version>
         </dependency>
-        <dependency>
-            <groupId>commons-io</groupId>
-            <artifactId>commons-io</artifactId>
-            <version>2.11.0</version>
-        </dependency>
 
         <!-- 对象序列化/反序列化框架 -->
         <dependency>

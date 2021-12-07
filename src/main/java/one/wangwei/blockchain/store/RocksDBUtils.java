@@ -8,6 +8,8 @@ import org.rocksdb.RocksDBException;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * 存储工具类
@@ -17,7 +19,7 @@ import java.util.Map;
  */
 public class RocksDBUtils {
     @SuppressWarnings("all")
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(RocksDBUtils.class);
+    private static final Logger logger = Logger.getLogger(RocksDBUtils.class.getName());
     /**
      * 区块链数据文件
      */
@@ -70,7 +72,7 @@ public class RocksDBUtils {
         try {
             db = RocksDB.open(DB_FILE);
         } catch (RocksDBException e) {
-            log.error("Fail to open db ! ", e);
+            logger.log(Level.SEVERE, "Fail to open db ! ", e);
             throw new RuntimeException("Fail to open db ! ", e);
         }
     }
@@ -89,7 +91,7 @@ public class RocksDBUtils {
                 db.put(blockBucketKey, SerializeUtils.serialize(blocksBucket));
             }
         } catch (RocksDBException e) {
-            log.error("Fail to init block bucket ! ", e);
+            logger.log(Level.SEVERE, "Fail to init block bucket ! ", e);
             throw new RuntimeException("Fail to init block bucket ! ", e);
         }
     }
@@ -108,7 +110,7 @@ public class RocksDBUtils {
                 db.put(chainstateBucketKey, SerializeUtils.serialize(chainstateBucket));
             }
         } catch (RocksDBException e) {
-            log.error("Fail to init chainstate bucket ! ", e);
+            logger.log(Level.SEVERE, "Fail to init chainstate bucket ! ", e);
             throw new RuntimeException("Fail to init chainstate bucket ! ", e);
         }
     }
@@ -123,7 +125,7 @@ public class RocksDBUtils {
             blocksBucket.put(LAST_BLOCK_KEY, SerializeUtils.serialize(tipBlockHash));
             db.put(SerializeUtils.serialize(BLOCKS_BUCKET_KEY), SerializeUtils.serialize(blocksBucket));
         } catch (RocksDBException e) {
-            log.error("Fail to put last block hash ! tipBlockHash=" + tipBlockHash, e);
+            logger.log(Level.SEVERE, "Fail to put last block hash ! tipBlockHash=" + tipBlockHash, e);
             throw new RuntimeException("Fail to put last block hash ! tipBlockHash=" + tipBlockHash, e);
         }
     }
@@ -151,7 +153,7 @@ public class RocksDBUtils {
             blocksBucket.put(block.getHash(), SerializeUtils.serialize(block));
             db.put(SerializeUtils.serialize(BLOCKS_BUCKET_KEY), SerializeUtils.serialize(blocksBucket));
         } catch (RocksDBException e) {
-            log.error("Fail to put block ! block=" + block, e);
+            logger.log(Level.SEVERE, "Fail to put block ! block=" + block, e);
             throw new RuntimeException("Fail to put block ! block=" + block, e);
         }
     }
@@ -177,7 +179,7 @@ public class RocksDBUtils {
         try {
             chainstateBucket.clear();
         } catch (Exception e) {
-            log.error("Fail to clear chainstate bucket ! ", e);
+            logger.log(Level.SEVERE, "Fail to clear chainstate bucket ! ", e);
             throw new RuntimeException("Fail to clear chainstate bucket ! ", e);
         }
     }
@@ -193,7 +195,7 @@ public class RocksDBUtils {
             chainstateBucket.put(key, SerializeUtils.serialize(utxos));
             db.put(SerializeUtils.serialize(CHAINSTATE_BUCKET_KEY), SerializeUtils.serialize(chainstateBucket));
         } catch (Exception e) {
-            log.error("Fail to put UTXOs into chainstate bucket ! key=" + key, e);
+            logger.log(Level.SEVERE, "Fail to put UTXOs into chainstate bucket ! key=" + key, e);
             throw new RuntimeException("Fail to put UTXOs into chainstate bucket ! key=" + key, e);
         }
     }
@@ -221,7 +223,7 @@ public class RocksDBUtils {
             chainstateBucket.remove(key);
             db.put(SerializeUtils.serialize(CHAINSTATE_BUCKET_KEY), SerializeUtils.serialize(chainstateBucket));
         } catch (Exception e) {
-            log.error("Fail to delete UTXOs by key ! key=" + key, e);
+            logger.log(Level.SEVERE, "Fail to delete UTXOs by key ! key=" + key, e);
             throw new RuntimeException("Fail to delete UTXOs by key ! key=" + key, e);
         }
     }
@@ -233,7 +235,7 @@ public class RocksDBUtils {
         try {
             db.close();
         } catch (Exception e) {
-            log.error("Fail to close db ! ", e);
+            logger.log(Level.SEVERE, "Fail to close db ! ", e);
             throw new RuntimeException("Fail to close db ! ", e);
         }
     }

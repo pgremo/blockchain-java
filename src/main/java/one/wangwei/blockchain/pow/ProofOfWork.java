@@ -12,6 +12,7 @@ import java.math.BigInteger;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Optional;
+import java.util.logging.Logger;
 import java.util.stream.LongStream;
 
 import static java.math.BigInteger.ONE;
@@ -29,7 +30,7 @@ import static one.wangwei.blockchain.util.Hashes.sha256;
  */
 public class ProofOfWork {
     @SuppressWarnings("all")
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProofOfWork.class);
+    private static final Logger logger = Logger.getLogger(ProofOfWork.class.getName());
     /**
      * 难度目标位
      */
@@ -81,10 +82,15 @@ public class ProofOfWork {
      */
     public Optional<PowResult> run() {
         var start = now();
-        return LongStream.range(0, Long.MAX_VALUE).peek(x -> log.info("POW running, nonce={}", x)).mapToObj(x -> new PowResult(x, sha256(prepareData(x)))).filter(x -> new BigInteger(1, x.hash()).compareTo(target) < 0).peek(x -> {
-            log.info("Elapsed Time: {} seconds \n", between(start, now()));
-            log.info("correct hash Hex: {} \n", x.hash());
-        }).findFirst();
+        return LongStream.range(0, Long.MAX_VALUE)
+                .peek(x -> logger.info(() -> "POW running, nonce=%s".formatted(x)))
+                .mapToObj(x -> new PowResult(x, sha256(prepareData(x))))
+                .filter(x -> new BigInteger(1, x.hash()).compareTo(target) < 0)
+                .peek(x -> {
+                    logger.info(() -> "Elapsed Time: %s seconds ".formatted(between(start, now())));
+                    logger.info(() -> "correct hash Hex: %s".formatted(x.hash()));
+                })
+                .findFirst();
     }
 
     /**

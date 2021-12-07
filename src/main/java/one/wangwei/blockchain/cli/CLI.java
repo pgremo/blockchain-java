@@ -3,6 +3,7 @@ package one.wangwei.blockchain.cli;
 import one.wangwei.blockchain.block.Blockchain;
 import one.wangwei.blockchain.pow.ProofOfWork;
 import one.wangwei.blockchain.store.RocksDBUtils;
+import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.transaction.UTXOSet;
 import one.wangwei.blockchain.util.Base58Check;
@@ -11,8 +12,12 @@ import one.wangwei.blockchain.wallet.WalletUtils;
 import org.apache.commons.cli.*;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.security.Security;
+import java.security.SignatureException;
 import java.util.Arrays;
+import java.util.logging.Logger;
 
 /**
  * 命令行解析器
@@ -22,11 +27,11 @@ import java.util.Arrays;
  */
 public class CLI {
     @SuppressWarnings("all")
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CLI.class);
-    private String[] args;
-    private Options options = new Options();
+    private static final Logger logger = Logger.getLogger(CLI.class.getName());
+    private final String[] args;
+    private final Options options = new Options();
 
-    static{
+    static {
         Security.addProvider(new BouncyCastleProvider());
     }
 
@@ -47,7 +52,7 @@ public class CLI {
     /**
      * 命令行解析入口
      */
-    public void parse() {
+    public void parse() throws ParseException, NoSuchAlgorithmException, SignatureException, InvalidKeyException {
         this.validateArgs(args);
         try {
             DefaultParser parser = new DefaultParser();
@@ -79,11 +84,8 @@ public class CLI {
                 case "createwallet" -> this.createWallet();
                 case "printaddresses" -> this.printAddresses();
                 case "printchain" -> this.printChain();
-                case "h" -> this.help();
                 default -> this.help();
             }
-        } catch (Exception e) {
-            log.error("Fail to parse cli command ! ", e);
         } finally {
             RocksDBUtils.getInstance().closeDB();
         }
@@ -109,7 +111,7 @@ public class CLI {
         var blockchain = Blockchain.createBlockchain(address);
         var utxoSet = new UTXOSet(blockchain);
         utxoSet.reIndex();
-        log.info("Done ! ");
+        logger.info("Done ! ");
     }
 
     /**
@@ -117,9 +119,9 @@ public class CLI {
      *
      * @throws Exception
      */
-    private void createWallet() throws Exception {
+    private void createWallet() {
         var wallet = WalletUtils.getInstance().createWallet();
-        log.info("wallet address : " + wallet.getAddress());
+        logger.info(() -> "wallet address : %s".formatted(wallet.getAddress()));
     }
 
     /**
@@ -128,11 +130,11 @@ public class CLI {
     private void printAddresses() {
         var addresses = WalletUtils.getInstance().getAddresses();
         if (addresses == null || addresses.isEmpty()) {
-            log.info("There isn\'t address");
+            logger.info("There isn\'t address");
             return;
         }
         for (var address : addresses) {
-            log.info("Wallet address: " + address);
+            logger.info(() -> "Wallet address: %s".formatted(address));
         }
     }
 
@@ -143,25 +145,15 @@ public class CLI {
      */
     private void getBalance(String address) {
         // 检查钱包地址是否合法
-        try {
-            Base58Check.base58ToBytes(address);
-        } catch (Exception e) {
-            log.error("ERROR: invalid wallet address", e);
-            throw new RuntimeException("ERROR: invalid wallet address", e);
-        }
+        Base58Check.base58ToBytes(address);
         // 得到公钥Hash值
         var versionedPayload = Base58Check.base58ToBytes(address);
         var pubKeyHash = Arrays.copyOfRange(versionedPayload, 1, versionedPayload.length);
         var blockchain = Blockchain.createBlockchain(address);
         var utxoSet = new UTXOSet(blockchain);
         var txOutputs = utxoSet.findUTXOs(pubKeyHash);
-        var balance = 0;
-        if (txOutputs != null && !txOutputs.isEmpty()) {
-            for (var txOutput : txOutputs) {
-                balance += txOutput.getValue();
-            }
-        }
-        log.info("Balance of \'{}\': {}\n", address, balance);
+        var balance = txOutputs.stream().mapToInt(TXOutput::getValue).sum();
+        logger.info(() -> "Balance of \'%s\': %s".formatted(address, balance));
     }
 
     /**
@@ -172,23 +164,13 @@ public class CLI {
      * @param amount
      * @throws Exception
      */
-    private void send(String from, String to, int amount) throws Exception {
+    private void send(String from, String to, int amount) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException {
         // 检查钱包地址是否合法
-        try {
-            Base58Check.base58ToBytes(from);
-        } catch (Exception e) {
-            log.error("ERROR: sender address invalid ! address=" + from, e);
-            throw new RuntimeException("ERROR: sender address invalid ! address=" + from, e);
-        }
+        Base58Check.base58ToBytes(from);
         // 检查钱包地址是否合法
-        try {
-            Base58Check.base58ToBytes(to);
-        } catch (Exception e) {
-            log.error("ERROR: receiver address invalid ! address=" + to, e);
-            throw new RuntimeException("ERROR: receiver address invalid ! address=" + to, e);
-        }
+        Base58Check.base58ToBytes(to);
         if (amount < 1) {
-            log.error("ERROR: amount invalid ! amount=" + amount);
+            logger.severe("ERROR: amount invalid ! amount=%s".formatted(amount));
             throw new RuntimeException("ERROR: amount invalid ! amount=" + amount);
         }
         var blockchain = Blockchain.createBlockchain(from);
@@ -196,9 +178,9 @@ public class CLI {
         var transaction = Transaction.newUTXOTransaction(from, to, amount, blockchain);
         // 奖励
         var rewardTx = Transaction.newCoinbaseTX(from, "");
-        var newBlock = blockchain.mineBlock(new Transaction[] {transaction, rewardTx}).orElseThrow();
+        var newBlock = blockchain.mineBlock(new Transaction[]{transaction, rewardTx}).orElseThrow();
         new UTXOSet(blockchain).update(newBlock);
-        log.info("Success!");
+        logger.info("Success!");
     }
 
     /**
@@ -221,7 +203,7 @@ public class CLI {
     private void printChain() {
         for (var block : Blockchain.initBlockchainFromDB()) {
             if (block != null) {
-                log.info(block + ", validate = " + ProofOfWork.newProofOfWork(block).validate());
+                logger.info("%s, validate = %s".formatted(block, ProofOfWork.newProofOfWork(block).validate()));
             }
         }
     }

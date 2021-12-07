@@ -5,7 +5,13 @@ import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.Bytes;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
+
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SignatureException;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * <p> 区块链 </p>
@@ -15,7 +21,7 @@ import java.util.*;
  */
 public class Blockchain implements Iterable<Block> {
     @SuppressWarnings("all")
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(Blockchain.class);
+    private static final Logger logger = Logger.getLogger(Blockchain.class.getName());
     private String lastBlockHash;
 
     /**
@@ -61,7 +67,7 @@ public class Blockchain implements Iterable<Block> {
         // 挖矿前，先验证交易记录
         for (var tx : transactions) {
             if (!this.verifyTransactions(tx)) {
-                log.error("ERROR: Fail to mine block ! Invalid transaction ! tx=" + tx);
+                logger.severe(() -> "ERROR: Fail to mine block ! Invalid transaction ! tx=%s".formatted(tx));
                 throw new RuntimeException("ERROR: Fail to mine block ! Invalid transaction ! ");
             }
         }
@@ -203,7 +209,7 @@ public class Blockchain implements Iterable<Block> {
      * @param tx         交易数据
      * @param privateKey 私钥
      */
-    public void signTransaction(Transaction tx, BCECPrivateKey privateKey) throws Exception {
+    public void signTransaction(Transaction tx, BCECPrivateKey privateKey) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException {
         // 先来找到这笔新的交易中，交易输入所引用的前面的多笔交易的数据
         var prevTxMap = new HashMap<String, Transaction>();
         for (var txInput : tx.getInputs()) {
@@ -230,7 +236,7 @@ public class Blockchain implements Iterable<Block> {
         try {
             return tx.verify(prevTx);
         } catch (Exception e) {
-            log.error("Fail to verify transaction ! transaction invalid ! ", e);
+            logger.log(Level.SEVERE, "Fail to verify transaction ! transaction invalid ! ", e);
             throw new RuntimeException("Fail to verify transaction ! transaction invalid ! ", e);
         }
     }
@@ -254,7 +260,8 @@ public class Blockchain implements Iterable<Block> {
         if (!other.canEqual((Object) this)) return false;
         final Object this$lastBlockHash = this.getLastBlockHash();
         final Object other$lastBlockHash = other.getLastBlockHash();
-        if (this$lastBlockHash == null ? other$lastBlockHash != null : !this$lastBlockHash.equals(other$lastBlockHash)) return false;
+        if (this$lastBlockHash == null ? other$lastBlockHash != null : !this$lastBlockHash.equals(other$lastBlockHash))
+            return false;
         return true;
     }
 

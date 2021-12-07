@@ -10,6 +10,8 @@ import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * 钱包工具类
@@ -18,8 +20,7 @@ import java.util.Set;
  * @date 2018/03/21
  */
 public class WalletUtils {
-    @SuppressWarnings("all")
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(WalletUtils.class);
+    private static final Logger logger = Logger.getLogger(WalletUtils.class.getName());
     /**
      * 钱包工具实例
      */
@@ -103,7 +104,7 @@ public class WalletUtils {
     private void saveToDisk(Wallets wallets) {
         try {
             if (wallets == null) {
-                log.error("Fail to save wallet to file ! wallets is null ");
+                logger.severe("Fail to save wallet to file ! wallets is null ");
                 throw new Exception("ERROR: Fail to save wallet to file !");
             }
             var sks = new SecretKeySpec(CIPHER_TEXT, ALGORITHM);
@@ -128,7 +129,7 @@ public class WalletUtils {
                 }
             }
         } catch (Exception e) {
-            log.error("Fail to save wallet to disk !", e);
+            logger.log(Level.SEVERE, "Fail to save wallet to disk !", e);
             throw new RuntimeException("Fail to save wallet to disk !");
         }
     }
@@ -158,7 +159,7 @@ public class WalletUtils {
                 }
             }
         } catch (Exception e) {
-            log.error("Fail to load wallet from disk ! ", e);
+            logger.log(Level.SEVERE, "Fail to load wallet from disk ! ", e);
             throw new RuntimeException("Fail to load wallet from disk ! ");
         }
     }
@@ -180,7 +181,7 @@ public class WalletUtils {
             try {
                 this.walletMap.put(wallet.getAddress(), wallet);
             } catch (Exception e) {
-                log.error("Fail to add wallet ! ", e);
+                logger.log(Level.SEVERE, "Fail to add wallet ! ", e);
                 throw new RuntimeException("Fail to add wallet !");
             }
         }
@@ -192,7 +193,7 @@ public class WalletUtils {
          */
         Set<String> getAddresses() {
             if (walletMap == null) {
-                log.error("Fail to get address ! walletMap is null ! ");
+                logger.severe("Fail to get address ! walletMap is null ! ");
                 throw new RuntimeException("Fail to get addresses ! ");
             }
             return walletMap.keySet();
@@ -209,12 +210,12 @@ public class WalletUtils {
             try {
                 Base58Check.base58ToBytes(address);
             } catch (Exception e) {
-                log.error("Fail to get wallet ! address invalid ! address=" + address, e);
+                logger.log(Level.SEVERE, "Fail to get wallet ! address invalid ! address=" + address, e);
                 throw new RuntimeException("Fail to get wallet ! ");
             }
             var wallet = walletMap.get(address);
             if (wallet == null) {
-                log.error("Fail to get wallet ! wallet don`t exist ! address=" + address);
+                logger.log(Level.SEVERE, "Fail to get wallet ! wallet don`t exist ! address=" + address);
                 throw new RuntimeException("Fail to get wallet ! ");
             }
             return wallet;

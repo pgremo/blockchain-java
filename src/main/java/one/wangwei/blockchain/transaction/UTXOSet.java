@@ -9,6 +9,7 @@ import one.wangwei.blockchain.util.SerializeUtils;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * 未被花费的交易输出池
@@ -18,7 +19,7 @@ import java.util.List;
  */
 public class UTXOSet {
     @SuppressWarnings("all")
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(UTXOSet.class);
+    private static final Logger logger = Logger.getLogger(UTXOSet.class.getName());
     @SuppressWarnings("all")
     private final Object $lock = new Object[0];
     private Blockchain blockchain;
@@ -79,13 +80,13 @@ public class UTXOSet {
      */
     public void reIndex() {
         synchronized (this.$lock) {
-            log.info("Start to reIndex UTXO set !");
+            logger.info("Start to reIndex UTXO set !");
             RocksDBUtils.getInstance().cleanChainStateBucket();
             var allUTXOs = blockchain.findAllUTXOs();
             for (var entry : allUTXOs.entrySet()) {
                 RocksDBUtils.getInstance().putUTXOs(entry.getKey(), entry.getValue().toArray(TXOutput[]::new));
             }
-            log.info("ReIndex UTXO set finished ! ");
+            logger.info("ReIndex UTXO set finished ! ");
         }
     }
 
@@ -101,7 +102,7 @@ public class UTXOSet {
     public void update(Block tipBlock) {
         synchronized (this.$lock) {
             if (tipBlock == null) {
-                log.error("Fail to update UTXO set ! tipBlock is null !");
+                logger.severe("Fail to update UTXO set ! tipBlock is null !");
                 throw new RuntimeException("Fail to update UTXO set ! ");
             }
             for (var transaction : tipBlock.getTransactions()) {

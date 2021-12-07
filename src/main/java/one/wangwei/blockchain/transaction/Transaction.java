@@ -11,11 +11,11 @@ import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.spec.ECPublicKeySpec;
 
 import java.math.BigInteger;
-import java.security.KeyFactory;
-import java.security.Signature;
+import java.security.*;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.logging.Logger;
 
 /**
  * 交易
@@ -25,7 +25,7 @@ import java.util.Map;
  */
 public class Transaction {
     @SuppressWarnings("all")
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(Transaction.class);
+    private static final Logger logger = Logger.getLogger(Transaction.class.getName());
     private static final int SUBSIDY = 10;
     /**
      * 交易的Hash
@@ -73,7 +73,7 @@ public class Transaction {
         // 创建交易输出
         var txOutput = TXOutput.newTXOutput(SUBSIDY, to);
         // 创建交易
-        var tx = new Transaction(null, new TXInput[] {txInput}, new TXOutput[] {txOutput}, System.currentTimeMillis());
+        var tx = new Transaction(null, new TXInput[]{txInput}, new TXOutput[]{txOutput}, System.currentTimeMillis());
         // 设置交易ID
         tx.setTxId(tx.hash());
         return tx;
@@ -97,7 +97,7 @@ public class Transaction {
      * @param blockchain 区块链
      * @return
      */
-    public static Transaction newUTXOTransaction(String from, String to, int amount, Blockchain blockchain) throws Exception {
+    public static Transaction newUTXOTransaction(String from, String to, int amount, Blockchain blockchain) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException {
         // 获取钱包
         var senderWallet = WalletUtils.getInstance().getWallet(from);
         var pubKey = senderWallet.getPublicKey();
@@ -106,7 +106,7 @@ public class Transaction {
         var accumulated = result.getAccumulated();
         var unspentOuts = result.getUnspentOuts();
         if (accumulated < amount) {
-            log.error("ERROR: Not enough funds ! accumulated=" + accumulated + ", amount=" + amount);
+            logger.severe(() -> "ERROR: Not enough funds ! accumulated=%s, amount=%s".formatted(accumulated, amount));
             throw new RuntimeException("ERROR: Not enough funds ! ");
         }
         var txInputs = new LinkedList<TXInput>();
@@ -156,7 +156,7 @@ public class Transaction {
      * @param privateKey 私钥
      * @param prevTxMap  前面多笔交易集合
      */
-    public void sign(BCECPrivateKey privateKey, Map<String, Transaction> prevTxMap) throws Exception {
+    public void sign(BCECPrivateKey privateKey, Map<String, Transaction> prevTxMap) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
         // coinbase 交易信息不需要签名，因为它不存在交易输入信息
         if (this.isCoinbase()) {
             return;

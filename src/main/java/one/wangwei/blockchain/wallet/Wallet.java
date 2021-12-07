@@ -13,6 +13,8 @@ import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.SecureRandom;
 import java.security.Security;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * 钱包
@@ -21,8 +23,7 @@ import java.security.Security;
  * @date 2018/03/14
  */
 public class Wallet implements Serializable {
-    @SuppressWarnings("all")
-    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(Wallet.class);
+    private static final Logger logger = Logger.getLogger(Wallet.class.getName());
     private static final long serialVersionUID = 166249065006236265L;
     /**
      * 校验码长度
@@ -53,7 +54,7 @@ public class Wallet implements Serializable {
             this.setPrivateKey(privateKey);
             this.setPublicKey(publicKeyBytes);
         } catch (Exception e) {
-            log.error("Fail to init wallet ! ", e);
+            logger.log(Level.SEVERE, "Fail to init wallet ! ", e);
             throw new RuntimeException("Fail to init wallet ! ", e);
         }
     }

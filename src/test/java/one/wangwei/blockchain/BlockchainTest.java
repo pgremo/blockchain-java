@@ -20,8 +20,7 @@ public class BlockchainTest {
 //            String[] argss = {"printchain"};
             var argss = new String[]{"getbalance", "-address", "1FfxJLfBGQuPN6vhaSoz278rfeC9GfAX2"};
 //            String[] argss = {"send", "-from", "1Aup3oweKvFd4upy2pZS9aKjn67SQgzbSC", "-to", "1FfxJLfBGQuPN6vhaSoz278rfeC9GfAX2", "-amount", "5"};
-            var cli = new CLI(argss);
-            cli.parse();
+            new CLI(argss).parse();
         } catch (Exception e) {
             e.printStackTrace();
         }

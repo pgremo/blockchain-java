@@ -2,7 +2,9 @@ package one.wangwei.blockchain.pow;
 
 import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.transaction.Transaction;
-import one.wangwei.blockchain.util.ByteUtils;
+import one.wangwei.blockchain.util.Bytes;
+import one.wangwei.blockchain.util.Hashes;
+import one.wangwei.blockchain.util.Numbers;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -18,7 +20,6 @@ import static java.time.Instant.now;
 import static java.util.Arrays.stream;
 import static java.util.stream.Collectors.toCollection;
 import static one.wangwei.blockchain.util.Hashes.sha256;
-import static org.apache.commons.codec.digest.DigestUtils.sha256Hex;
 
 /**
  * 工作量证明
@@ -92,7 +93,7 @@ public class ProofOfWork {
      * @return
      */
     public boolean validate() {
-        return new BigInteger(sha256Hex(prepareData(block.getNonce())), 16).compareTo(target) < 0;
+        return new BigInteger(Bytes.byteArrayToHex(Hashes.sha256(Numbers.toBytes(block.getNonce()))), 16).compareTo(target) < 0;
     }
 
     /**
@@ -111,9 +112,9 @@ public class ProofOfWork {
         try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
             stream.write(prevBlockHashBytes);
             stream.write(hashTransactions());
-            stream.write(ByteUtils.toBytes(block.getTimeStamp()));
-            stream.write(ByteUtils.toBytes(TARGET_BITS));
-            stream.write(ByteUtils.toBytes(nonce));
+            stream.write(Numbers.toBytes(block.getTimeStamp()));
+            stream.write(Numbers.toBytes(TARGET_BITS));
+            stream.write(Numbers.toBytes(nonce));
             return stream.toByteArray();
         } catch (IOException e) {
             throw new RuntimeException(e);

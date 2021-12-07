@@ -2,10 +2,10 @@ package one.wangwei.blockchain.transaction;
 
 import one.wangwei.blockchain.block.Blockchain;
 import one.wangwei.blockchain.util.BtcAddressUtils;
+import one.wangwei.blockchain.util.Bytes;
+import one.wangwei.blockchain.util.Hashes;
 import one.wangwei.blockchain.util.SerializeUtils;
 import one.wangwei.blockchain.wallet.WalletUtils;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.codec.digest.DigestUtils;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jce.ECNamedCurveTable;
 import org.bouncycastle.jce.spec.ECPublicKeySpec;
@@ -54,7 +54,7 @@ public class Transaction {
         var serializeBytes = SerializeUtils.serialize(this);
         var copyTx = SerializeUtils.<Transaction>deserialize(serializeBytes);
         copyTx.setTxId(new byte[0]);
-        return DigestUtils.sha256(SerializeUtils.serialize(copyTx));
+        return Hashes.sha256(SerializeUtils.serialize(copyTx));
     }
 
     /**
@@ -113,7 +113,8 @@ public class Transaction {
         for (var entry : unspentOuts.entrySet()) {
             var txIdStr = entry.getKey();
             var outIds = entry.getValue();
-            var txId = Hex.decodeHex(txIdStr);
+            // TODO:  should just be byte[]'s all around
+            var txId = Bytes.hexToByteArray(txIdStr).orElseThrow();
             for (var outIndex : outIds) {
                 txInputs.add(new TXInput(txId, outIndex, null, pubKey));
             }
@@ -162,7 +163,7 @@ public class Transaction {
         }
         // 再次验证一下交易信息中的交易输入是否正确，也就是能否查找对应的交易数据
         for (var txInput : this.getInputs()) {
-            if (prevTxMap.get(Hex.encodeHexString(txInput.getTxId())) == null) {
+            if (prevTxMap.get(Bytes.byteArrayToHex(txInput.getTxId())) == null) {
                 throw new RuntimeException("ERROR: Previous transaction is not correct");
             }
         }
@@ -173,7 +174,7 @@ public class Transaction {
         for (var i = 0; i < txCopy.getInputs().length; i++) {
             var txInputCopy = txCopy.getInputs()[i];
             // 获取交易输入TxID对应的交易数据
-            var prevTx = prevTxMap.get(Hex.encodeHexString(txInputCopy.getTxId()));
+            var prevTx = prevTxMap.get(Bytes.byteArrayToHex(txInputCopy.getTxId()));
             // 获取交易输入所对应的上一笔交易中的交易输出
             var prevTxOutput = prevTx.getOutputs()[txInputCopy.getTxOutputIndex()];
             txInputCopy.setPubKey(prevTxOutput.getPubKeyHash());
@@ -203,7 +204,7 @@ public class Transaction {
         }
         // 再次验证一下交易信息中的交易输入是否正确，也就是能否查找对应的交易数据
         for (var txInput : this.getInputs()) {
-            if (prevTxMap.get(Hex.encodeHexString(txInput.getTxId())) == null) {
+            if (prevTxMap.get(Bytes.byteArrayToHex(txInput.getTxId())) == null) {
                 throw new RuntimeException("ERROR: Previous transaction is not correct");
             }
         }
@@ -215,7 +216,7 @@ public class Transaction {
         for (var i = 0; i < this.getInputs().length; i++) {
             var txInput = this.getInputs()[i];
             // 获取交易输入TxID对应的交易数据
-            var prevTx = prevTxMap.get(Hex.encodeHexString(txInput.getTxId()));
+            var prevTx = prevTxMap.get(Bytes.byteArrayToHex(txInput.getTxId()));
             // 获取交易输入所对应的上一笔交易中的交易输出
             var prevTxOutput = prevTx.getOutputs()[txInput.getTxOutputIndex()];
             var txInputCopy = txCopy.getInputs()[i];

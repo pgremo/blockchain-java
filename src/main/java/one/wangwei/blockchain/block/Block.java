@@ -2,8 +2,7 @@ package one.wangwei.blockchain.block;
 
 import one.wangwei.blockchain.pow.ProofOfWork;
 import one.wangwei.blockchain.transaction.Transaction;
-import one.wangwei.blockchain.util.ByteUtils;
-import org.apache.commons.codec.binary.Hex;
+import one.wangwei.blockchain.util.Bytes;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -43,7 +42,7 @@ public class Block {
      * @return
      */
     public static Optional<Block> newGenesisBlock(Transaction coinbase) {
-        return Block.newBlock(ByteUtils.ZERO_HASH, new Transaction[] {coinbase});
+        return Block.newBlock(Bytes.ZERO_HASH, new Transaction[] {coinbase});
     }
 
     /**
@@ -57,7 +56,7 @@ public class Block {
         var block = new Block("", previousHash, transactions, Instant.now().getEpochSecond(), 0);
         var pow = ProofOfWork.newProofOfWork(block);
         return pow.run().map(x -> {
-            block.setHash(Hex.encodeHexString(x.hash()));
+            block.setHash(Bytes.byteArrayToHex(x.hash()));
             block.setNonce(x.nonce());
             return block;
         });

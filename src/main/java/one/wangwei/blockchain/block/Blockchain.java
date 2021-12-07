@@ -3,8 +3,7 @@ package one.wangwei.blockchain.block;
 import one.wangwei.blockchain.store.RocksDBUtils;
 import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
-import one.wangwei.blockchain.util.ByteUtils;
-import org.apache.commons.codec.binary.Hex;
+import one.wangwei.blockchain.util.Bytes;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import java.util.*;
 
@@ -103,7 +102,7 @@ public class Blockchain implements Iterable<Block> {
          * @return
          */
         public boolean hasNext() {
-            return !currentBlockHash.equals(ByteUtils.ZERO_HASH);
+            return !currentBlockHash.equals(Bytes.ZERO_HASH);
         }
 
         /**
@@ -141,7 +140,7 @@ public class Blockchain implements Iterable<Block> {
         // 再次遍历所有区块中的交易输出
         for (var block : this) {
             for (var transaction : block.getTransactions()) {
-                var txId = Hex.encodeHexString(transaction.getTxId());
+                var txId = Bytes.byteArrayToHex(transaction.getTxId());
                 var spentOutIndexArray = allSpentTXOs.get(txId);
                 var txOutputs = transaction.getOutputs();
                 for (var outIndex = 0; outIndex < txOutputs.length; outIndex++) {
@@ -172,7 +171,7 @@ public class Blockchain implements Iterable<Block> {
                     continue;
                 }
                 for (var txInput : transaction.getInputs()) {
-                    var inTxId = Hex.encodeHexString(txInput.getTxId());
+                    var inTxId = Bytes.byteArrayToHex(txInput.getTxId());
                     var spentOutIndexArray = spentTXOs.computeIfAbsent(inTxId, x -> new LinkedList<>());
                     spentOutIndexArray.add(txInput.getTxOutputIndex());
                 }
@@ -209,7 +208,7 @@ public class Blockchain implements Iterable<Block> {
         var prevTxMap = new HashMap<String, Transaction>();
         for (var txInput : tx.getInputs()) {
             var prevTx = this.findTransaction(txInput.getTxId());
-            prevTxMap.put(Hex.encodeHexString(txInput.getTxId()), prevTx);
+            prevTxMap.put(Bytes.byteArrayToHex(txInput.getTxId()), prevTx);
         }
         tx.sign(privateKey, prevTxMap);
     }
@@ -226,7 +225,7 @@ public class Blockchain implements Iterable<Block> {
         var prevTx = new HashMap<String, Transaction>();
         for (var txInput : tx.getInputs()) {
             var transaction = this.findTransaction(txInput.getTxId());
-            prevTx.put(Hex.encodeHexString(txInput.getTxId()), transaction);
+            prevTx.put(Bytes.byteArrayToHex(txInput.getTxId()), transaction);
         }
         try {
             return tx.verify(prevTx);

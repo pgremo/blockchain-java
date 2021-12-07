@@ -3,8 +3,8 @@ package one.wangwei.blockchain.transaction;
 import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.block.Blockchain;
 import one.wangwei.blockchain.store.RocksDBUtils;
+import one.wangwei.blockchain.util.Bytes;
 import one.wangwei.blockchain.util.SerializeUtils;
-import org.apache.commons.codec.binary.Hex;
 
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -110,7 +110,7 @@ public class UTXOSet {
                     for (var txInput : transaction.getInputs()) {
                         // 余下未被使用的交易输出
                         var remainderUTXOs = new LinkedList<TXOutput>();
-                        var txId = Hex.encodeHexString(txInput.getTxId());
+                        var txId = Bytes.byteArrayToHex(txInput.getTxId());
                         var txOutputs = RocksDBUtils.getInstance().getUTXOs(txId);
                         if (txOutputs == null) {
                             continue;
@@ -130,7 +130,7 @@ public class UTXOSet {
                 }
                 // 新的交易输出保存到DB中
                 var txOutputs = transaction.getOutputs();
-                var txId = Hex.encodeHexString(transaction.getTxId());
+                var txId = Bytes.byteArrayToHex(transaction.getTxId());
                 RocksDBUtils.getInstance().putUTXOs(txId, txOutputs);
             }
         }

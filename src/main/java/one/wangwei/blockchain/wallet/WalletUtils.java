@@ -1,6 +1,7 @@
 package one.wangwei.blockchain.wallet;
 
 import one.wangwei.blockchain.util.Base58Check;
+
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
@@ -9,6 +10,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -59,10 +61,10 @@ public class WalletUtils {
      */
     private void initWalletFile() {
         var file = new File(WALLET_FILE);
-        if (!file.exists()) {
-            this.saveToDisk(new Wallets());
-        } else {
+        if (file.exists()) {
             this.loadFromDisk();
+        } else {
+            this.saveToDisk(new Wallets());
         }
     }
 
@@ -72,7 +74,7 @@ public class WalletUtils {
      * @return
      */
     public Set<String> getAddresses() {
-        return this.loadFromDisk().getAddresses();
+        return this.loadFromDisk().orElseThrow().getAddresses();
     }
 
     /**
@@ -82,7 +84,7 @@ public class WalletUtils {
      * @return
      */
     public Wallet getWallet(String address) {
-        return this.loadFromDisk().getWallet(address);
+        return this.loadFromDisk().orElseThrow().getWallet(address);
     }
 
     /**
@@ -92,9 +94,9 @@ public class WalletUtils {
      */
     public Wallet createWallet() {
         var wallet = new Wallet();
-        var wallets = this.loadFromDisk();
+        var wallets = loadFromDisk().orElse(new Wallets());
         wallets.addWallet(wallet);
-        this.saveToDisk(wallets);
+        saveToDisk(wallets);
         return wallet;
     }
 
@@ -108,25 +110,10 @@ public class WalletUtils {
                 throw new Exception("ERROR: Fail to save wallet to file !");
             }
             var sks = new SecretKeySpec(CIPHER_TEXT, ALGORITHM);
-            // Create cipher
             var cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.ENCRYPT_MODE, sks);
-            var sealedObject = new SealedObject(wallets, cipher);
-            // Wrap the output stream
-            var cos = new CipherOutputStream(new BufferedOutputStream(new FileOutputStream(WALLET_FILE)), cipher);
-            try {
-                var outputStream = new ObjectOutputStream(cos);
-                try {
-                    outputStream.writeObject(sealedObject);
-                } finally {
-                    if (java.util.Collections.singletonList(outputStream).get(0) != null) {
-                        outputStream.close();
-                    }
-                }
-            } finally {
-                if (java.util.Collections.singletonList(cos).get(0) != null) {
-                    cos.close();
-                }
+            try (var outputStream = new ObjectOutputStream(new CipherOutputStream(new BufferedOutputStream(new FileOutputStream(WALLET_FILE)), cipher))) {
+                outputStream.writeObject(new SealedObject(wallets, cipher));
             }
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Fail to save wallet to disk !", e);
@@ -136,31 +123,19 @@ public class WalletUtils {
 
     /**
      * 加载钱包数据
+     * @return
      */
-    private Wallets loadFromDisk() {
+    private Optional<Wallets> loadFromDisk() {
         try {
             var sks = new SecretKeySpec(CIPHER_TEXT, ALGORITHM);
             var cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.DECRYPT_MODE, sks);
-            var cipherInputStream = new CipherInputStream(new BufferedInputStream(new FileInputStream(WALLET_FILE)), cipher);
-            try {
-                var inputStream = new ObjectInputStream(cipherInputStream);
-                try {
-                    var sealedObject = (SealedObject) inputStream.readObject();
-                    return (Wallets) sealedObject.getObject(cipher);
-                } finally {
-                    if (java.util.Collections.singletonList(inputStream).get(0) != null) {
-                        inputStream.close();
-                    }
-                }
-            } finally {
-                if (java.util.Collections.singletonList(cipherInputStream).get(0) != null) {
-                    cipherInputStream.close();
-                }
+            try (var inputStream = new ObjectInputStream(new CipherInputStream(new BufferedInputStream(new FileInputStream(WALLET_FILE)), cipher))) {
+                var sealedObject = (SealedObject) inputStream.readObject();
+                return Optional.of((Wallets) sealedObject.getObject(cipher));
             }
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Fail to load wallet from disk ! ", e);
-            throw new RuntimeException("Fail to load wallet from disk ! ");
+            return Optional.empty();
         }
     }
 
@@ -240,7 +215,8 @@ public class WalletUtils {
             if (!other.canEqual((Object) this)) return false;
             final Object this$walletMap = this.getWalletMap();
             final Object other$walletMap = other.getWalletMap();
-            if (this$walletMap == null ? other$walletMap != null : !this$walletMap.equals(other$walletMap)) return false;
+            if (this$walletMap == null ? other$walletMap != null : !this$walletMap.equals(other$walletMap))
+                return false;
             return true;
         }
 

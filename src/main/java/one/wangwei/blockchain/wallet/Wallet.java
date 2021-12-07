@@ -1,20 +1,17 @@
 package one.wangwei.blockchain.wallet;
 
-import one.wangwei.blockchain.util.Base58Check;
-import one.wangwei.blockchain.util.BtcAddressUtils;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
-import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.bouncycastle.jce.ECNamedCurveTable;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
+
 import java.io.Serializable;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.SecureRandom;
-import java.security.Security;
+import java.security.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import static java.lang.System.arraycopy;
+import static one.wangwei.blockchain.util.Base58Check.rawBytesToBase58;
+import static one.wangwei.blockchain.util.BtcAddressUtils.checksum;
+import static one.wangwei.blockchain.util.BtcAddressUtils.ripeMD160Hash;
 
 /**
  * 钱包
@@ -25,10 +22,6 @@ import java.util.logging.Logger;
 public class Wallet implements Serializable {
     private static final Logger logger = Logger.getLogger(Wallet.class.getName());
     private static final long serialVersionUID = 166249065006236265L;
-    /**
-     * 校验码长度
-     */
-    private static final int ADDRESS_CHECKSUM_LEN = 4;
     /**
      * 私钥
      */
@@ -48,11 +41,8 @@ public class Wallet implements Serializable {
     private void initWallet() {
         try {
             var keyPair = newECKeyPair();
-            var privateKey = (BCECPrivateKey) keyPair.getPrivate();
-            var publicKey = (BCECPublicKey) keyPair.getPublic();
-            var publicKeyBytes = publicKey.getQ().getEncoded(false);
-            this.setPrivateKey(privateKey);
-            this.setPublicKey(publicKeyBytes);
+            privateKey = (BCECPrivateKey) keyPair.getPrivate();
+            publicKey = keyPair.getPublic().getEncoded();
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Fail to init wallet ! ", e);
             throw new RuntimeException("Fail to init wallet ! ", e);
@@ -65,12 +55,8 @@ public class Wallet implements Serializable {
      * @return
      * @throws Exception
      */
-    private KeyPair newECKeyPair() throws Exception {
-        // 注册 BC Provider
-        Security.addProvider(new BouncyCastleProvider());
-        // 创建椭圆曲线算法的密钥对生成器，算法为 ECDSA
-        var keyPairGenerator = KeyPairGenerator.getInstance("ECDSA", BouncyCastleProvider.PROVIDER_NAME);
-        // 椭圆曲线（EC）域参数设定
+    private KeyPair newECKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+        var keyPairGenerator = KeyPairGenerator.getInstance("ECDSA");
         // bitcoin 为什么会选择 secp256k1，详见：https://bitcointalk.org/index.php?topic=151120.0
         var ecSpec = ECNamedCurveTable.getParameterSpec("secp256k1");
         keyPairGenerator.initialize(ecSpec, new SecureRandom());
@@ -83,25 +69,15 @@ public class Wallet implements Serializable {
      * @return
      */
     public String getAddress() {
-        try {
-            // 1. 获取 ripemdHashedKey
-            var ripemdHashedKey = BtcAddressUtils.ripeMD160Hash(this.getPublicKey());
-            // 2. 添加版本 0x00
-            var addrStream = new ByteArrayOutputStream();
-            addrStream.write((byte) 0);
-            addrStream.write(ripemdHashedKey);
-            var versionedPayload = addrStream.toByteArray();
-            // 3. 计算校验码
-            var checksum = BtcAddressUtils.checksum(versionedPayload);
-            // 4. 得到 version + paylod + checksum 的组合
-            addrStream.write(checksum);
-            var binaryAddress = addrStream.toByteArray();
-            // 5. 执行Base58转换处理
-            return Base58Check.rawBytesToBase58(binaryAddress);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        throw new RuntimeException("Fail to get wallet address ! ");
+        var buffer = new byte[25];
+        buffer[0] = 0;
+        byte[] hash = ripeMD160Hash(publicKey);
+        arraycopy(hash, 0, buffer, 1, hash.length);
+        var versioned = new byte[21];
+        arraycopy(buffer, 0, versioned, 0, versioned.length);
+        var check = checksum(versioned);
+        arraycopy(check, 0, buffer, 21, check.length);
+        return rawBytesToBase58(buffer);
     }
 
     /**
@@ -145,7 +121,8 @@ public class Wallet implements Serializable {
         if (!other.canEqual((Object) this)) return false;
         final Object this$privateKey = this.getPrivateKey();
         final Object other$privateKey = other.getPrivateKey();
-        if (this$privateKey == null ? other$privateKey != null : !this$privateKey.equals(other$privateKey)) return false;
+        if (this$privateKey == null ? other$privateKey != null : !this$privateKey.equals(other$privateKey))
+            return false;
         if (!java.util.Arrays.equals(this.getPublicKey(), other.getPublicKey())) return false;
         return true;
     }

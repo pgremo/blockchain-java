@@ -6,10 +6,13 @@ import one.wangwei.blockchain.store.RocksDBUtils;
 import one.wangwei.blockchain.util.Bytes;
 import one.wangwei.blockchain.util.SerializeUtils;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.logging.Logger;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * 未被花费的交易输出池
@@ -18,11 +21,9 @@ import java.util.logging.Logger;
  * @date 2018/03/31
  */
 public class UTXOSet {
-    @SuppressWarnings("all")
     private static final Logger logger = Logger.getLogger(UTXOSet.class.getName());
-    @SuppressWarnings("all")
     private final Object $lock = new Object[0];
-    private Blockchain blockchain;
+    private final Blockchain blockchain;
 
     /**
      * 寻找能够花费的交易
@@ -41,11 +42,9 @@ public class UTXOSet {
                 var txOutput = txOutputs[outId];
                 if (txOutput.isLockedWithKey(pubKeyHash) && accumulated < amount) {
                     accumulated += txOutput.getValue();
-                    var outIds = unspentOuts.computeIfAbsent(txId, x -> new LinkedList<>());
-                    outIds.add(outId);
-                    if (accumulated >= amount) {
-                        break;
-                    }
+                    unspentOuts.computeIfAbsent(txId, x -> new LinkedList<>()).add(outId);
+
+                    if (accumulated >= amount) break;
                 }
             }
         }
@@ -59,20 +58,10 @@ public class UTXOSet {
      * @return
      */
     public List<TXOutput> findUTXOs(byte[] pubKeyHash) {
-        var utxos = new LinkedList<TXOutput>();
-        var chainstateBucket = RocksDBUtils.getInstance().getChainstateBucket();
-        if (chainstateBucket.isEmpty()) {
-            return utxos;
-        }
-        for (var value : chainstateBucket.values()) {
-            var txOutputs = (TXOutput[]) SerializeUtils.deserialize(value);
-            for (var txOutput : txOutputs) {
-                if (txOutput.isLockedWithKey(pubKeyHash)) {
-                    utxos.add(txOutput);
-                }
-            }
-        }
-        return utxos;
+        return RocksDBUtils.getInstance().getChainstateBucket().values().stream()
+                .flatMap(x -> Arrays.stream((TXOutput[])SerializeUtils.deserialize(x)))
+                .filter(x -> x.isLockedWithKey(pubKeyHash))
+                .collect(toList());
     }
 
     /**
@@ -82,10 +71,7 @@ public class UTXOSet {
         synchronized (this.$lock) {
             logger.info("Start to reIndex UTXO set !");
             RocksDBUtils.getInstance().cleanChainStateBucket();
-            var allUTXOs = blockchain.findAllUTXOs();
-            for (var entry : allUTXOs.entrySet()) {
-                RocksDBUtils.getInstance().putUTXOs(entry.getKey(), entry.getValue().toArray(TXOutput[]::new));
-            }
+            blockchain.findAllUTXOs().forEach((key, value) -> RocksDBUtils.getInstance().putUTXOs(key, value.toArray(TXOutput[]::new)));
             logger.info("ReIndex UTXO set finished ! ");
         }
     }
@@ -107,26 +93,26 @@ public class UTXOSet {
             }
             for (var transaction : tipBlock.getTransactions()) {
                 // 根据交易输入排查出剩余未被使用的交易输出
-                if (!transaction.isCoinbase()) {
-                    for (var txInput : transaction.getInputs()) {
-                        // 余下未被使用的交易输出
-                        var remainderUTXOs = new LinkedList<TXOutput>();
-                        var txId = Bytes.byteArrayToHex(txInput.getTxId());
-                        var txOutputs = RocksDBUtils.getInstance().getUTXOs(txId);
-                        if (txOutputs == null) {
-                            continue;
+                if (transaction.isCoinbase()) continue;
+
+                for (var txInput : transaction.getInputs()) {
+                    // 余下未被使用的交易输出
+                    var remainderUTXOs = new LinkedList<TXOutput>();
+                    var txId = Bytes.byteArrayToHex(txInput.getTxId());
+                    var txOutputs = RocksDBUtils.getInstance().getUTXOs(txId);
+
+                    if (txOutputs == null) continue;
+
+                    for (var outIndex = 0; outIndex < txOutputs.length; outIndex++) {
+                        if (outIndex != txInput.getTxOutputIndex()) {
+                            remainderUTXOs.add(txOutputs[outIndex]);
                         }
-                        for (var outIndex = 0; outIndex < txOutputs.length; outIndex++) {
-                            if (outIndex != txInput.getTxOutputIndex()) {
-                                remainderUTXOs.add(txOutputs[outIndex]);
-                            }
-                        }
-                        // 没有剩余则删除，否则更新
-                        if (remainderUTXOs.isEmpty()) {
-                            RocksDBUtils.getInstance().deleteUTXOs(txId);
-                        } else {
-                            RocksDBUtils.getInstance().putUTXOs(txId, remainderUTXOs.toArray(TXOutput[]::new));
-                        }
+                    }
+                    // 没有剩余则删除，否则更新
+                    if (remainderUTXOs.isEmpty()) {
+                        RocksDBUtils.getInstance().deleteUTXOs(txId);
+                    } else {
+                        RocksDBUtils.getInstance().putUTXOs(txId, remainderUTXOs.toArray(TXOutput[]::new));
                     }
                 }
                 // 新的交易输出保存到DB中
@@ -137,11 +123,6 @@ public class UTXOSet {
         }
     }
 
-    @SuppressWarnings("all")
-    public UTXOSet() {
-    }
-
-    @SuppressWarnings("all")
     public UTXOSet(final Blockchain blockchain) {
         this.blockchain = blockchain;
     }

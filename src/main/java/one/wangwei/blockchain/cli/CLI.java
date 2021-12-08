@@ -204,7 +204,7 @@ public class CLI {
     private void printChain() {
         for (var block : Blockchain.initBlockchainFromDB()) {
             if (block != null) {
-                logger.info("%s, validate = %s".formatted(block, ProofOfWork.newProofOfWork(block).validate()));
+                logger.info("%s, validate = %s".formatted(block, ProofOfWork.validate(block)));
             }
         }
     }

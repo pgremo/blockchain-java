@@ -50,7 +50,7 @@ public class Blockchain implements Iterable<Block> {
             var genesisCoinbaseData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
             var coinbaseTX = Transaction.newCoinbaseTX(address, genesisCoinbaseData);
             var genesisBlock = Block.newGenesisBlock(coinbaseTX).orElseThrow();
-            lastBlockHash = genesisBlock.getHash();
+            lastBlockHash = genesisBlock.hash();
             RocksDBUtils.getInstance().putBlock(genesisBlock);
             RocksDBUtils.getInstance().putLastBlockHash(lastBlockHash);
         }
@@ -86,9 +86,9 @@ public class Blockchain implements Iterable<Block> {
      * @param block
      */
     private void addBlock(Block block) {
-        RocksDBUtils.getInstance().putLastBlockHash(block.getHash());
+        RocksDBUtils.getInstance().putLastBlockHash(block.hash());
         RocksDBUtils.getInstance().putBlock(block);
-        this.lastBlockHash = block.getHash();
+        this.lastBlockHash = block.hash();
     }
 
 
@@ -108,7 +108,7 @@ public class Blockchain implements Iterable<Block> {
          * @return
          */
         public boolean hasNext() {
-            return !currentBlockHash.equals(Bytes.ZERO_HASH);
+            return !currentBlockHash.equals(Block.ZERO_HASH);
         }
 
         /**
@@ -119,7 +119,7 @@ public class Blockchain implements Iterable<Block> {
         public Block next() {
             var currentBlock = RocksDBUtils.getInstance().getBlock(currentBlockHash);
             if (currentBlock != null) {
-                currentBlockHash = currentBlock.getPrevBlockHash();
+                currentBlockHash = currentBlock.previousHash();
                 return currentBlock;
             }
             throw new NoSuchElementException();
@@ -145,7 +145,7 @@ public class Blockchain implements Iterable<Block> {
         var allUTXOs = new HashMap<String, List<TXOutput>>();
         // 再次遍历所有区块中的交易输出
         for (var block : this) {
-            for (var transaction : block.getTransactions()) {
+            for (var transaction : block.transactions()) {
                 var txId = Bytes.byteArrayToHex(transaction.getTxId());
                 var spentOutIndexArray = allSpentTXOs.get(txId);
                 var txOutputs = transaction.getOutputs();
@@ -171,7 +171,7 @@ public class Blockchain implements Iterable<Block> {
         // 定义TxId ——> spentOutIndex[]，存储交易ID与已被花费的交易输出数组索引值
         var spentTXOs = new HashMap<String, List<Integer>>();
         for (var block : this) {
-            for (var transaction : block.getTransactions()) {
+            for (var transaction : block.transactions()) {
                 // 如果是 coinbase 交易，直接跳过，因为它不存在引用前一个区块的交易输出
                 if (transaction.isCoinbase()) {
                     continue;
@@ -194,7 +194,7 @@ public class Blockchain implements Iterable<Block> {
      */
     private Transaction findTransaction(byte[] txId) {
         for (var block : this) {
-            for (var tx : block.getTransactions()) {
+            for (var tx : block.transactions()) {
                 if (Arrays.equals(tx.getTxId(), txId)) {
                     return tx;
                 }

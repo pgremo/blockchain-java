@@ -3,7 +3,6 @@ package one.wangwei.blockchain.util;
 import java.util.Optional;
 
 import static java.lang.Character.digit;
-import static java.nio.charset.StandardCharsets.US_ASCII;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 /**
@@ -16,9 +15,7 @@ public class Bytes {
 
     public static final byte[] EMPTY_BYTES = new byte[32];
 
-    public static final String ZERO_HASH = byteArrayToHex(EMPTY_BYTES);
-
-    private static final byte[] HEX_ARRAY = "0123456789ABCDEF".getBytes(US_ASCII);
+    private static final byte[] HEX_ARRAY = "0123456789ABCDEF".getBytes(UTF_8);
 
     public static String byteArrayToHex(byte[] value) {
         final byte[] data = new byte[value.length * 2];

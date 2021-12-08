@@ -150,7 +150,7 @@ public class RocksDBUtils {
      */
     public void putBlock(Block block) {
         try {
-            blocksBucket.put(block.getHash(), SerializeUtils.serialize(block));
+            blocksBucket.put(block.hash(), SerializeUtils.serialize(block));
             db.put(SerializeUtils.serialize(BLOCKS_BUCKET_KEY), SerializeUtils.serialize(blocksBucket));
         } catch (RocksDBException e) {
             logger.log(Level.SEVERE, "Fail to put block ! block=" + block, e);

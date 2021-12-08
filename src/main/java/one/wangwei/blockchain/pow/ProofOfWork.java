@@ -38,11 +38,11 @@ public class ProofOfWork {
     /**
      * 区块
      */
-    private Block block;
+    private PoWRequest block;
     /**
      * 难度目标值
      */
-    private BigInteger target;
+    private static final BigInteger target = ONE.shiftLeft(256 - TARGET_BITS);
 
     /**
      * 创建新的工作量证明，设定难度目标值
@@ -52,12 +52,12 @@ public class ProofOfWork {
      * @param block
      * @return
      */
-    public static ProofOfWork newProofOfWork(Block block) {
-        return new ProofOfWork(block, ONE.shiftLeft(256 - TARGET_BITS));
+    public static ProofOfWork newProofOfWork(PoWRequest block) {
+        return new ProofOfWork(block);
     }
 
     private byte[] hashTransactions() {
-        var hashes = stream(block.getTransactions()).map(Transaction::hash).collect(toCollection(LinkedList::new));
+        var hashes = stream(block.transactions()).map(Transaction::hash).collect(toCollection(LinkedList::new));
         if (hashes.size() % 2 != 0) hashes.add(hashes.getLast());
         return iterate(hashes).poll();
     }
@@ -98,8 +98,8 @@ public class ProofOfWork {
      *
      * @return
      */
-    public boolean validate() {
-        return new BigInteger(Bytes.byteArrayToHex(Hashes.sha256(Numbers.toBytes(block.getNonce()))), 16).compareTo(target) < 0;
+    public static boolean validate(Block block) {
+        return new BigInteger(Bytes.byteArrayToHex(Hashes.sha256(Numbers.toBytes(block.nonce()))), 16).compareTo(target) < 0;
     }
 
     /**
@@ -111,14 +111,14 @@ public class ProofOfWork {
      * @return
      */
     private byte[] prepareData(long nonce) {
-        var prevBlockHashBytes = block.getPrevBlockHash().isBlank() ?
+        var prevBlockHashBytes = block.previousHash().isBlank() ?
                 new byte[0] :
-                new BigInteger(block.getPrevBlockHash(), 16).toByteArray();
+                new BigInteger(block.previousHash(), 16).toByteArray();
 
         try (ByteArrayOutputStream stream = new ByteArrayOutputStream()) {
             stream.write(prevBlockHashBytes);
             stream.write(hashTransactions());
-            stream.write(Numbers.toBytes(block.getTimeStamp()));
+            stream.write(Numbers.toBytes(block.stamp().getEpochSecond()));
             stream.write(Numbers.toBytes(TARGET_BITS));
             stream.write(Numbers.toBytes(nonce));
             return stream.toByteArray();
@@ -131,7 +131,7 @@ public class ProofOfWork {
      * 区块
      */
     @SuppressWarnings("all")
-    public Block getBlock() {
+    public PoWRequest getBlock() {
         return this.block;
     }
 
@@ -147,16 +147,8 @@ public class ProofOfWork {
      * 区块
      */
     @SuppressWarnings("all")
-    public void setBlock(final Block block) {
+    public void setBlock(final PoWRequest block) {
         this.block = block;
-    }
-
-    /**
-     * 难度目标值
-     */
-    @SuppressWarnings("all")
-    public void setTarget(final BigInteger target) {
-        this.target = target;
     }
 
     @Override
@@ -199,9 +191,8 @@ public class ProofOfWork {
     }
 
     @SuppressWarnings("all")
-    public ProofOfWork(final Block block, final BigInteger target) {
+    public ProofOfWork(final PoWRequest block) {
         this.block = block;
-        this.target = target;
     }
 
     @SuppressWarnings("all")

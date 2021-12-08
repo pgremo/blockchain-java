@@ -91,7 +91,7 @@ public class UTXOSet {
                 logger.severe("Fail to update UTXO set ! tipBlock is null !");
                 throw new RuntimeException("Fail to update UTXO set ! ");
             }
-            for (var transaction : tipBlock.getTransactions()) {
+            for (var transaction : tipBlock.transactions()) {
                 // 根据交易输入排查出剩余未被使用的交易输出
                 if (transaction.isCoinbase()) continue;
 

@@ -17,8 +17,8 @@ public class BlockchainTest {
             // 1G9TkDEp9YTnGa6gS5zaWkwGQwKrRykXcf
             // 1EKacQPNxTd8N7Y83VK11zoqm7bhUZiDHm
 //            String[] argss = {"printaddresses"};
-//            String[] argss = {"printchain"};
-            var argss = new String[]{"getbalance", "-address", "1FfxJLfBGQuPN6vhaSoz278rfeC9GfAX2"};
+            var argss = new String[]{"printchain"};
+//            var argss = new String[]{"getbalance", "-address", "1FfxJLfBGQuPN6vhaSoz278rfeC9GfAX2"};
 //            var argss = new String[]{"send", "-from", "1Aup3oweKvFd4upy2pZS9aKjn67SQgzbSC", "-to", "1FfxJLfBGQuPN6vhaSoz278rfeC9GfAX2", "-amount", "5"};
             new CLI(argss).parse();
         } catch (Exception e) {

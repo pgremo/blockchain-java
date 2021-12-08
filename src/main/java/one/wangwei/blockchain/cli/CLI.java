@@ -9,10 +9,12 @@ import one.wangwei.blockchain.transaction.UTXOSet;
 import one.wangwei.blockchain.util.Base58Check;
 import one.wangwei.blockchain.util.Numbers;
 import one.wangwei.blockchain.wallet.WalletUtils;
-import org.apache.commons.cli.*;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Security;
@@ -27,7 +29,6 @@ import java.util.logging.Logger;
  * @date 2018/03/08
  */
 public class CLI {
-    @SuppressWarnings("all")
     private static final Logger logger = Logger.getLogger(CLI.class.getName());
     private final String[] args;
     private final Options options = new Options();
@@ -38,12 +39,12 @@ public class CLI {
 
     public CLI(String[] args) {
         this.args = args;
-        Option helpCmd = Option.builder("h").desc("show help").build();
+        var helpCmd = Option.builder("h").desc("show help").build();
         options.addOption(helpCmd);
-        Option address = Option.builder("address").hasArg(true).desc("Source wallet address").build();
-        Option sendFrom = Option.builder("from").hasArg(true).desc("Source wallet address").build();
-        Option sendTo = Option.builder("to").hasArg(true).desc("Destination wallet address").build();
-        Option sendAmount = Option.builder("amount").hasArg(true).desc("Amount to send").build();
+        var address = Option.builder("address").hasArg(true).desc("Source wallet address").build();
+        var sendFrom = Option.builder("from").hasArg(true).desc("Source wallet address").build();
+        var sendTo = Option.builder("to").hasArg(true).desc("Destination wallet address").build();
+        var sendAmount = Option.builder("amount").hasArg(true).desc("Amount to send").build();
         options.addOption(address);
         options.addOption(sendFrom);
         options.addOption(sendTo);
@@ -56,8 +57,7 @@ public class CLI {
     public void parse() throws ParseException, NoSuchAlgorithmException, SignatureException, InvalidKeyException {
         this.validateArgs(args);
         try {
-            DefaultParser parser = new DefaultParser();
-            var cmd = parser.parse(options, args);
+            var cmd = new DefaultParser().parse(options, args);
             switch (args[0]) {
                 case "createblockchain" -> {
                     var createblockchainAddress = cmd.getOptionValue("address");

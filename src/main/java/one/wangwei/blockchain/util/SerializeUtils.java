@@ -8,6 +8,7 @@ import one.wangwei.blockchain.transaction.TXInput;
 import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -29,6 +30,7 @@ public class SerializeUtils {
         kryo.register(TXInput[].class);
         kryo.register(TXOutput.class);
         kryo.register(TXOutput[].class);
+        kryo.register(ArrayList.class);
         kryo.register(byte[].class);
         kryo.register(Block.class);
     }

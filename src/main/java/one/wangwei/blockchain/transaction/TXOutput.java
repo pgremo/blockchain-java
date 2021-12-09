@@ -2,6 +2,8 @@ package one.wangwei.blockchain.transaction;
 
 import one.wangwei.blockchain.util.Base58Check;
 import one.wangwei.blockchain.util.Bytes;
+import one.wangwei.blockchain.util.Hashes;
+import one.wangwei.blockchain.util.Numbers;
 
 import java.util.Arrays;
 
@@ -12,6 +14,10 @@ import java.util.Arrays;
  * @date 2017/03/04
  */
 public record TXOutput(int value, byte[] pubKeyHash) {
+
+    public byte[] hash() {
+        return Hashes.sha256(Numbers.toBytes(value), pubKeyHash);
+    }
 
     /**
      * 创建交易输出

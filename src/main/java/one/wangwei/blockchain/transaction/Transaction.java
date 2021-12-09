@@ -1,10 +1,7 @@
 package one.wangwei.blockchain.transaction;
 
 import one.wangwei.blockchain.block.Blockchain;
-import one.wangwei.blockchain.util.BtcAddressUtils;
-import one.wangwei.blockchain.util.Bytes;
-import one.wangwei.blockchain.util.Hashes;
-import one.wangwei.blockchain.util.SerializeUtils;
+import one.wangwei.blockchain.util.*;
 import one.wangwei.blockchain.wallet.WalletUtils;
 import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.bouncycastle.jce.ECNamedCurveTable;
@@ -16,8 +13,11 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import static java.util.Arrays.copyOfRange;
+import static java.util.stream.Collectors.toCollection;
+import static one.wangwei.blockchain.util.MerkleRoot.*;
 
 /**
  * 交易
@@ -51,11 +51,11 @@ public class Transaction {
      * @return
      */
     public byte[] hash() {
-        // 使用序列化的方式对Transaction对象进行深度复制
-        var serializeBytes = SerializeUtils.serialize(this);
-        var copyTx = SerializeUtils.<Transaction>deserialize(serializeBytes);
-        copyTx.setTxId(new byte[0]);
-        return Hashes.sha256(SerializeUtils.serialize(copyTx));
+        return Hashes.sha256(
+                merkleRoot(Arrays.stream(inputs).map(TXInput::hash).collect(toCollection(LinkedList::new))),
+                merkleRoot(Arrays.stream(outputs).map(TXOutput::hash).collect(toCollection(LinkedList::new))),
+                Numbers.toBytes(createTime)
+        );
     }
 
     /**

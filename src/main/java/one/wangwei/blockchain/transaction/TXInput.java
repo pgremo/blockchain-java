@@ -1,6 +1,8 @@
 package one.wangwei.blockchain.transaction;
 
 import one.wangwei.blockchain.util.Bytes;
+import one.wangwei.blockchain.util.Hashes;
+import one.wangwei.blockchain.util.Numbers;
 
 import java.util.Arrays;
 
@@ -27,6 +29,10 @@ public class TXInput {
      * 公钥
      */
     private byte[] pubKey;
+
+    public byte[] hash() {
+        return Hashes.sha256(txId, Numbers.toBytes(txOutputIndex), signature, pubKey);
+    }
 
     /**
      * 交易Id的hash值

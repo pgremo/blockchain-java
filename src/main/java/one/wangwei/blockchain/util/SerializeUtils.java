@@ -3,13 +3,19 @@ package one.wangwei.blockchain.util;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.CollectionSerializer;
+import com.esotericsoftware.kryo.serializers.RecordSerializer;
+import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy;
 import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.transaction.TXInput;
 import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
+import org.objenesis.strategy.StdInstantiatorStrategy;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 
 /**
  * 序列化工具类
@@ -19,10 +25,19 @@ import java.util.HashMap;
  */
 public class SerializeUtils {
 
-    private static Kryo kryo;
+    private static final Kryo kryo;
 
-    static{
+    static {
         kryo = new Kryo();
+
+        kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
+
+        final RecordSerializer<?> rs = new RecordSerializer<>();
+        rs.setFixedFieldTypes(true);
+        kryo.addDefaultSerializer(Record.class, rs);
+
+        kryo.register(List.class);
+        kryo.register(ArrayList.class);
         kryo.register(HashMap.class);
         kryo.register(Transaction.class);
         kryo.register(Transaction[].class);

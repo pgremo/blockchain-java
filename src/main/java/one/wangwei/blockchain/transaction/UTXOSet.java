@@ -41,7 +41,7 @@ public class UTXOSet {
             for (var outId = 0; outId < txOutputs.length; outId++) {
                 var txOutput = txOutputs[outId];
                 if (txOutput.isLockedWithKey(pubKeyHash) && accumulated < amount) {
-                    accumulated += txOutput.getValue();
+                    accumulated += txOutput.value();
                     unspentOuts.computeIfAbsent(txId, x -> new LinkedList<>()).add(outId);
 
                     if (accumulated >= amount) break;

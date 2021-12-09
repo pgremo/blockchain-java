@@ -41,10 +41,10 @@ public class CLI {
         this.args = args;
         var helpCmd = Option.builder("h").desc("show help").build();
         options.addOption(helpCmd);
-        var address = Option.builder("address").hasArg(true).desc("Source wallet address").build();
-        var sendFrom = Option.builder("from").hasArg(true).desc("Source wallet address").build();
-        var sendTo = Option.builder("to").hasArg(true).desc("Destination wallet address").build();
-        var sendAmount = Option.builder("amount").hasArg(true).desc("Amount to send").build();
+        var address = Option.builder().longOpt("address").hasArg(true).desc("Source wallet address").build();
+        var sendFrom = Option.builder().longOpt("from").hasArg(true).desc("Source wallet address").build();
+        var sendTo = Option.builder().longOpt("to").hasArg(true).desc("Destination wallet address").build();
+        var sendAmount = Option.builder().longOpt("amount").hasArg(true).desc("Amount to send").build();
         options.addOption(address);
         options.addOption(sendFrom);
         options.addOption(sendTo);
@@ -153,7 +153,7 @@ public class CLI {
         var blockchain = Blockchain.createBlockchain(address);
         var utxoSet = new UTXOSet(blockchain);
         var txOutputs = utxoSet.findUTXOs(pubKeyHash);
-        var balance = txOutputs.stream().mapToInt(TXOutput::getValue).sum();
+        var balance = txOutputs.stream().mapToInt(TXOutput::value).sum();
         logger.info(() -> "Balance of \'%s\': %s".formatted(address, balance));
     }
 

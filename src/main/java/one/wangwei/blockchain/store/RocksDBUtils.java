@@ -243,7 +243,6 @@ public class RocksDBUtils {
     /**
      * chainstate buckets
      */
-    @SuppressWarnings("all")
     public Map<String, byte[]> getChainstateBucket() {
         return this.chainstateBucket;
     }

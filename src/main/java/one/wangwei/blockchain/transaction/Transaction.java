@@ -17,6 +17,8 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import static java.util.Arrays.copyOfRange;
+
 /**
  * 交易
  *
@@ -24,7 +26,6 @@ import java.util.logging.Logger;
  * @date 2017/03/04
  */
 public class Transaction {
-    @SuppressWarnings("all")
     private static final Logger logger = Logger.getLogger(Transaction.class.getName());
     private static final int SUBSIDY = 10;
     /**
@@ -34,15 +35,15 @@ public class Transaction {
     /**
      * 交易输入
      */
-    private TXInput[] inputs;
+    private final TXInput[] inputs;
     /**
      * 交易输出
      */
-    private TXOutput[] outputs;
+    private final TXOutput[] outputs;
     /**
      * 创建日期
      */
-    private long createTime;
+    private final long createTime;
 
     /**
      * 计算交易信息的Hash值
@@ -103,8 +104,8 @@ public class Transaction {
         var pubKey = senderWallet.getPublicKey();
         var pubKeyHash = BtcAddressUtils.ripeMD160Hash(pubKey);
         var result = new UTXOSet(blockchain).findSpendableOutputs(pubKeyHash, amount);
-        var accumulated = result.getAccumulated();
-        var unspentOuts = result.getUnspentOuts();
+        var accumulated = result.accumulated();
+        var unspentOuts = result.unspentOuts();
         if (accumulated < amount) {
             logger.severe(() -> "ERROR: Not enough funds ! accumulated=%s, amount=%s".formatted(accumulated, amount));
             throw new RuntimeException("ERROR: Not enough funds ! ");
@@ -145,7 +146,7 @@ public class Transaction {
         var tmpTXOutputs = new TXOutput[this.getOutputs().length];
         for (var i = 0; i < this.getOutputs().length; i++) {
             var txOutput = this.getOutputs()[i];
-            tmpTXOutputs[i] = new TXOutput(txOutput.getValue(), txOutput.getPubKeyHash());
+            tmpTXOutputs[i] = new TXOutput(txOutput.value(), txOutput.pubKeyHash());
         }
         return new Transaction(this.getTxId(), tmpTXInputs, tmpTXOutputs, this.getCreateTime());
     }
@@ -177,7 +178,7 @@ public class Transaction {
             var prevTx = prevTxMap.get(Bytes.byteArrayToHex(txInputCopy.getTxId()));
             // 获取交易输入所对应的上一笔交易中的交易输出
             var prevTxOutput = prevTx.getOutputs()[txInputCopy.getTxOutputIndex()];
-            txInputCopy.setPubKey(prevTxOutput.getPubKeyHash());
+            txInputCopy.setPubKey(prevTxOutput.pubKeyHash());
             txInputCopy.setSignature(null);
             // 得到要签名的数据，即交易ID
             txCopy.setTxId(txCopy.hash());
@@ -221,13 +222,13 @@ public class Transaction {
             var prevTxOutput = prevTx.getOutputs()[txInput.getTxOutputIndex()];
             var txInputCopy = txCopy.getInputs()[i];
             txInputCopy.setSignature(null);
-            txInputCopy.setPubKey(prevTxOutput.getPubKeyHash());
+            txInputCopy.setPubKey(prevTxOutput.pubKeyHash());
             // 得到要签名的数据，即交易ID
             txCopy.setTxId(txCopy.hash());
             txInputCopy.setPubKey(null);
             // 使用椭圆曲线 x,y 点去生成公钥Key
-            var x = new BigInteger(1, Arrays.copyOfRange(txInput.getPubKey(), 1, 33));
-            var y = new BigInteger(1, Arrays.copyOfRange(txInput.getPubKey(), 33, 65));
+            var x = new BigInteger(1, copyOfRange(txInput.getPubKey(), 1, 33));
+            var y = new BigInteger(1, copyOfRange(txInput.getPubKey(), 33, 65));
             var ecPoint = ecParameters.getCurve().createPoint(x, y);
             var keySpec = new ECPublicKeySpec(ecPoint, ecParameters);
             var publicKey = keyFactory.generatePublic(keySpec);
@@ -243,7 +244,6 @@ public class Transaction {
     /**
      * 交易的Hash
      */
-    @SuppressWarnings("all")
     public byte[] getTxId() {
         return this.txId;
     }
@@ -251,7 +251,6 @@ public class Transaction {
     /**
      * 交易输入
      */
-    @SuppressWarnings("all")
     public TXInput[] getInputs() {
         return this.inputs;
     }
@@ -259,7 +258,6 @@ public class Transaction {
     /**
      * 交易输出
      */
-    @SuppressWarnings("all")
     public TXOutput[] getOutputs() {
         return this.outputs;
     }
@@ -267,7 +265,6 @@ public class Transaction {
     /**
      * 创建日期
      */
-    @SuppressWarnings("all")
     public long getCreateTime() {
         return this.createTime;
     }
@@ -275,37 +272,11 @@ public class Transaction {
     /**
      * 交易的Hash
      */
-    @SuppressWarnings("all")
     public void setTxId(final byte[] txId) {
         this.txId = txId;
     }
 
-    /**
-     * 交易输入
-     */
-    @SuppressWarnings("all")
-    public void setInputs(final TXInput[] inputs) {
-        this.inputs = inputs;
-    }
-
-    /**
-     * 交易输出
-     */
-    @SuppressWarnings("all")
-    public void setOutputs(final TXOutput[] outputs) {
-        this.outputs = outputs;
-    }
-
-    /**
-     * 创建日期
-     */
-    @SuppressWarnings("all")
-    public void setCreateTime(final long createTime) {
-        this.createTime = createTime;
-    }
-
     @Override
-    @SuppressWarnings("all")
     public boolean equals(final Object o) {
         if (o == this) return true;
         if (!(o instanceof Transaction)) return false;
@@ -318,13 +289,11 @@ public class Transaction {
         return true;
     }
 
-    @SuppressWarnings("all")
     protected boolean canEqual(final Object other) {
         return other instanceof Transaction;
     }
 
     @Override
-    @SuppressWarnings("all")
     public int hashCode() {
         final int PRIME = 59;
         int result = 1;
@@ -337,20 +306,14 @@ public class Transaction {
     }
 
     @Override
-    @SuppressWarnings("all")
     public String toString() {
-        return "Transaction(txId=" + Arrays.toString(this.getTxId()) + ", inputs=" + Arrays.deepToString(this.getInputs()) + ", outputs=" + Arrays.deepToString(this.getOutputs()) + ", createTime=" + this.getCreateTime() + ")";
+        return "Transaction[txId=" + Arrays.toString(this.getTxId()) + ", inputs=" + Arrays.deepToString(this.getInputs()) + ", outputs=" + Arrays.deepToString(this.getOutputs()) + ", createTime=" + this.getCreateTime() + "]";
     }
 
-    @SuppressWarnings("all")
     public Transaction(final byte[] txId, final TXInput[] inputs, final TXOutput[] outputs, final long createTime) {
         this.txId = txId;
         this.inputs = inputs;
         this.outputs = outputs;
         this.createTime = createTime;
-    }
-
-    @SuppressWarnings("all")
-    public Transaction() {
     }
 }

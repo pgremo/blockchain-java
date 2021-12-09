@@ -31,6 +31,18 @@ public class Wallet implements Serializable {
      */
     private byte[] publicKey;
 
+    public static Wallet createWallet(){
+        try {
+            var keyPair = newECKeyPair();
+            var privateKey = (BCECPrivateKey) keyPair.getPrivate();
+            var publicKey = keyPair.getPublic().getEncoded();
+            return new Wallet(privateKey, publicKey);
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Fail to init wallet ! ", e);
+            throw new RuntimeException("Fail to init wallet ! ", e);
+        }
+    }
+
     public Wallet() {
         initWallet();
     }
@@ -55,7 +67,7 @@ public class Wallet implements Serializable {
      * @return
      * @throws Exception
      */
-    private KeyPair newECKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
+    private static KeyPair newECKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
         var keyPairGenerator = KeyPairGenerator.getInstance("ECDSA");
         // bitcoin 为什么会选择 secp256k1，详见：https://bitcointalk.org/index.php?topic=151120.0
         var ecSpec = ECNamedCurveTable.getParameterSpec("secp256k1");
@@ -83,7 +95,6 @@ public class Wallet implements Serializable {
     /**
      * 私钥
      */
-    @SuppressWarnings("all")
     public BCECPrivateKey getPrivateKey() {
         return this.privateKey;
     }
@@ -91,29 +102,11 @@ public class Wallet implements Serializable {
     /**
      * 公钥
      */
-    @SuppressWarnings("all")
     public byte[] getPublicKey() {
         return this.publicKey;
     }
 
-    /**
-     * 私钥
-     */
-    @SuppressWarnings("all")
-    public void setPrivateKey(final BCECPrivateKey privateKey) {
-        this.privateKey = privateKey;
-    }
-
-    /**
-     * 公钥
-     */
-    @SuppressWarnings("all")
-    public void setPublicKey(final byte[] publicKey) {
-        this.publicKey = publicKey;
-    }
-
     @Override
-    @SuppressWarnings("all")
     public boolean equals(final Object o) {
         if (o == this) return true;
         if (!(o instanceof Wallet)) return false;
@@ -127,13 +120,11 @@ public class Wallet implements Serializable {
         return true;
     }
 
-    @SuppressWarnings("all")
     protected boolean canEqual(final Object other) {
         return other instanceof Wallet;
     }
 
     @Override
-    @SuppressWarnings("all")
     public int hashCode() {
         final int PRIME = 59;
         int result = 1;
@@ -144,12 +135,10 @@ public class Wallet implements Serializable {
     }
 
     @Override
-    @SuppressWarnings("all")
     public String toString() {
         return "Wallet(privateKey=" + this.getPrivateKey() + ", publicKey=" + java.util.Arrays.toString(this.getPublicKey()) + ")";
     }
 
-    @SuppressWarnings("all")
     public Wallet(final BCECPrivateKey privateKey, final byte[] publicKey) {
         this.privateKey = privateKey;
         this.publicKey = publicKey;

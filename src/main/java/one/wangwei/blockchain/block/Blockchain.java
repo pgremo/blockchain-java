@@ -225,7 +225,7 @@ public class Blockchain implements Iterable<Block> {
      *
      * @param tx
      */
-    private boolean verifyTransactions(Transaction tx) {
+    public boolean verifyTransactions(Transaction tx) {
         if (tx.isCoinbase()) {
             return true;
         }
@@ -242,18 +242,11 @@ public class Blockchain implements Iterable<Block> {
         }
     }
 
-    @SuppressWarnings("all")
     public String getLastBlockHash() {
         return this.lastBlockHash;
     }
 
-    @SuppressWarnings("all")
-    public void setLastBlockHash(final String lastBlockHash) {
-        this.lastBlockHash = lastBlockHash;
-    }
-
     @Override
-    @SuppressWarnings("all")
     public boolean equals(final Object o) {
         if (o == this) return true;
         if (!(o instanceof Blockchain)) return false;
@@ -266,13 +259,11 @@ public class Blockchain implements Iterable<Block> {
         return true;
     }
 
-    @SuppressWarnings("all")
     protected boolean canEqual(final Object other) {
         return other instanceof Blockchain;
     }
 
     @Override
-    @SuppressWarnings("all")
     public int hashCode() {
         final int PRIME = 59;
         int result = 1;
@@ -282,17 +273,11 @@ public class Blockchain implements Iterable<Block> {
     }
 
     @Override
-    @SuppressWarnings("all")
     public String toString() {
         return "Blockchain(lastBlockHash=" + this.getLastBlockHash() + ")";
     }
 
-    @SuppressWarnings("all")
     public Blockchain(final String lastBlockHash) {
         this.lastBlockHash = lastBlockHash;
-    }
-
-    @SuppressWarnings("all")
-    public Blockchain() {
     }
 }

@@ -1,6 +1,5 @@
 package one.wangwei.blockchain.transaction;
 
-import one.wangwei.blockchain.util.BtcAddressUtils;
 import java.util.Arrays;
 
 /**
@@ -13,11 +12,11 @@ public class TXInput {
     /**
      * 交易Id的hash值
      */
-    private byte[] txId;
+    private final byte[] txId;
     /**
      * 交易输出索引
      */
-    private int txOutputIndex;
+    private final int txOutputIndex;
     /**
      * 签名
      */
@@ -28,20 +27,8 @@ public class TXInput {
     private byte[] pubKey;
 
     /**
-     * 检查公钥hash是否用于交易输入
-     *
-     * @param pubKeyHash
-     * @return
-     */
-    public boolean usesKey(byte[] pubKeyHash) {
-        var lockingHash = BtcAddressUtils.ripeMD160Hash(this.getPubKey());
-        return Arrays.equals(lockingHash, pubKeyHash);
-    }
-
-    /**
      * 交易Id的hash值
      */
-    @SuppressWarnings("all")
     public byte[] getTxId() {
         return this.txId;
     }
@@ -49,7 +36,6 @@ public class TXInput {
     /**
      * 交易输出索引
      */
-    @SuppressWarnings("all")
     public int getTxOutputIndex() {
         return this.txOutputIndex;
     }
@@ -57,7 +43,6 @@ public class TXInput {
     /**
      * 签名
      */
-    @SuppressWarnings("all")
     public byte[] getSignature() {
         return this.signature;
     }
@@ -65,31 +50,13 @@ public class TXInput {
     /**
      * 公钥
      */
-    @SuppressWarnings("all")
     public byte[] getPubKey() {
         return this.pubKey;
     }
 
     /**
-     * 交易Id的hash值
-     */
-    @SuppressWarnings("all")
-    public void setTxId(final byte[] txId) {
-        this.txId = txId;
-    }
-
-    /**
-     * 交易输出索引
-     */
-    @SuppressWarnings("all")
-    public void setTxOutputIndex(final int txOutputIndex) {
-        this.txOutputIndex = txOutputIndex;
-    }
-
-    /**
      * 签名
      */
-    @SuppressWarnings("all")
     public void setSignature(final byte[] signature) {
         this.signature = signature;
     }
@@ -97,13 +64,11 @@ public class TXInput {
     /**
      * 公钥
      */
-    @SuppressWarnings("all")
     public void setPubKey(final byte[] pubKey) {
         this.pubKey = pubKey;
     }
 
     @Override
-    @SuppressWarnings("all")
     public boolean equals(final Object o) {
         if (o == this) return true;
         if (!(o instanceof TXInput)) return false;
@@ -116,13 +81,11 @@ public class TXInput {
         return true;
     }
 
-    @SuppressWarnings("all")
     protected boolean canEqual(final Object other) {
         return other instanceof TXInput;
     }
 
     @Override
-    @SuppressWarnings("all")
     public int hashCode() {
         final int PRIME = 59;
         int result = 1;
@@ -134,20 +97,14 @@ public class TXInput {
     }
 
     @Override
-    @SuppressWarnings("all")
     public String toString() {
-        return "TXInput(txId=" + Arrays.toString(this.getTxId()) + ", txOutputIndex=" + this.getTxOutputIndex() + ", signature=" + Arrays.toString(this.getSignature()) + ", pubKey=" + Arrays.toString(this.getPubKey()) + ")";
+        return "TXInput[txId=" + Arrays.toString(this.getTxId()) + ", txOutputIndex=" + this.getTxOutputIndex() + ", signature=" + Arrays.toString(this.getSignature()) + ", pubKey=" + Arrays.toString(this.getPubKey()) + "]";
     }
 
-    @SuppressWarnings("all")
     public TXInput(final byte[] txId, final int txOutputIndex, final byte[] signature, final byte[] pubKey) {
         this.txId = txId;
         this.txOutputIndex = txOutputIndex;
         this.signature = signature;
         this.pubKey = pubKey;
-    }
-
-    @SuppressWarnings("all")
-    public TXInput() {
     }
 }

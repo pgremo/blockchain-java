@@ -41,7 +41,7 @@ public class ProofOfWork {
     }
 
     public static boolean validate(Block block) {
-        PoWRequest request = new PoWRequest(block.previousHash(), block.transactions().toArray(Transaction[]::new), Instant.ofEpochMilli(block.timeStamp()));
+        PoWRequest request = new PoWRequest(block.previousHash(), block.transactions(), Instant.ofEpochMilli(block.timeStamp()));
         return new BigInteger(1, sha256(prepareData(request, block.nonce()))).compareTo(target) < 0;
     }
 

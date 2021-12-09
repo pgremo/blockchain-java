@@ -17,7 +17,7 @@ import java.util.Optional;
  * @author wangwei
  * @date 2018/02/02
  */
-public record Block(String hash, String previousHash, List<Transaction> transactions, long timeStamp, long nonce) {
+public record Block(String hash, String previousHash, Transaction[] transactions, long timeStamp, long nonce) {
 
     public static final String ZERO_HASH = Bytes.byteArrayToHex(Bytes.EMPTY_BYTES);
 
@@ -45,9 +45,20 @@ public record Block(String hash, String previousHash, List<Transaction> transact
         return pow.run(request).map(x -> new Block(
                 Bytes.byteArrayToHex(x.hash()),
                 previousHash,
-                new ArrayList<>(Arrays.asList(transactions)),
+                transactions,
                 now.toEpochMilli(),
                 x.nonce()
         ));
+    }
+
+    @Override
+    public String toString() {
+        return "Block[" +
+                "hash=" + hash +
+                ", previousHash=" + previousHash +
+                ", transactions=" + Arrays.toString(transactions) +
+                ", timeStamp=" + timeStamp +
+                ", nonce=" + nonce +
+                ']';
     }
 }

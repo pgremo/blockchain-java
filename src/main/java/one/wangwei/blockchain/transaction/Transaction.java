@@ -307,7 +307,7 @@ public class Transaction {
 
     @Override
     public String toString() {
-        return "Transaction[txId=" + Arrays.toString(this.getTxId()) + ", inputs=" + Arrays.deepToString(this.getInputs()) + ", outputs=" + Arrays.deepToString(this.getOutputs()) + ", createTime=" + this.getCreateTime() + "]";
+        return "Transaction[txId=" + Bytes.byteArrayToHex(this.getTxId()) + ", inputs=" + Arrays.deepToString(this.getInputs()) + ", outputs=" + Arrays.deepToString(this.getOutputs()) + ", createTime=" + this.getCreateTime() + "]";
     }
 
     public Transaction(final byte[] txId, final TXInput[] inputs, final TXOutput[] outputs, final long createTime) {

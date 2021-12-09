@@ -15,11 +15,14 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.security.SignatureException;
 import java.util.Arrays;
+import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
 /**
@@ -35,6 +38,15 @@ public class CLI {
 
     static {
         Security.addProvider(new BouncyCastleProvider());
+    }
+
+    static {
+        final LogManager logManager = LogManager.getLogManager();
+        try (final var is = CLI.class.getResourceAsStream("/logging.properties")) {
+            logManager.readConfiguration(is);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public CLI(String[] args) {

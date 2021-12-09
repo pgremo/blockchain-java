@@ -1,5 +1,7 @@
 package one.wangwei.blockchain.transaction;
 
+import one.wangwei.blockchain.util.Bytes;
+
 import java.util.Arrays;
 
 /**
@@ -98,7 +100,7 @@ public class TXInput {
 
     @Override
     public String toString() {
-        return "TXInput[txId=" + Arrays.toString(this.getTxId()) + ", txOutputIndex=" + this.getTxOutputIndex() + ", signature=" + Arrays.toString(this.getSignature()) + ", pubKey=" + Arrays.toString(this.getPubKey()) + "]";
+        return "TXInput[txId=" + Arrays.toString(this.getTxId()) + ", txOutputIndex=" + this.getTxOutputIndex() + ", signature=" + Arrays.toString(this.getSignature()) + ", pubKey=" + Bytes.byteArrayToHex(this.getPubKey()) + "]";
     }
 
     public TXInput(final byte[] txId, final int txOutputIndex, final byte[] signature, final byte[] pubKey) {

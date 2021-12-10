@@ -1,10 +1,9 @@
 package one.wangwei.blockchain.wallet;
 
-import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
-import org.bouncycastle.jce.ECNamedCurveTable;
-
 import java.io.Serializable;
 import java.security.*;
+import java.security.spec.ECGenParameterSpec;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -25,16 +24,16 @@ public class Wallet implements Serializable {
     /**
      * 私钥
      */
-    private BCECPrivateKey privateKey;
+    private PrivateKey privateKey;
     /**
      * 公钥
      */
     private byte[] publicKey;
 
-    public static Wallet createWallet(){
+    public static Wallet createWallet() {
         try {
             var keyPair = newECKeyPair();
-            var privateKey = (BCECPrivateKey) keyPair.getPrivate();
+            var privateKey = keyPair.getPrivate();
             var publicKey = keyPair.getPublic().getEncoded();
             return new Wallet(privateKey, publicKey);
         } catch (Exception e) {
@@ -53,7 +52,7 @@ public class Wallet implements Serializable {
     private void initWallet() {
         try {
             var keyPair = newECKeyPair();
-            privateKey = (BCECPrivateKey) keyPair.getPrivate();
+            privateKey = keyPair.getPrivate();
             publicKey = keyPair.getPublic().getEncoded();
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Fail to init wallet ! ", e);
@@ -67,12 +66,10 @@ public class Wallet implements Serializable {
      * @return
      * @throws Exception
      */
-    private static KeyPair newECKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException {
-        var keyPairGenerator = KeyPairGenerator.getInstance("ECDSA");
-        // bitcoin 为什么会选择 secp256k1，详见：https://bitcointalk.org/index.php?topic=151120.0
-        var ecSpec = ECNamedCurveTable.getParameterSpec("secp256k1");
-        keyPairGenerator.initialize(ecSpec, new SecureRandom());
-        return keyPairGenerator.generateKeyPair();
+    private static KeyPair newECKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException {
+        var generator = KeyPairGenerator.getInstance("EC", "SunEC");
+        generator.initialize(new ECGenParameterSpec("secp521r1"));
+        return generator.generateKeyPair();
     }
 
     /**
@@ -95,7 +92,7 @@ public class Wallet implements Serializable {
     /**
      * 私钥
      */
-    public BCECPrivateKey getPrivateKey() {
+    public PrivateKey getPrivateKey() {
         return this.privateKey;
     }
 
@@ -109,15 +106,12 @@ public class Wallet implements Serializable {
     @Override
     public boolean equals(final Object o) {
         if (o == this) return true;
-        if (!(o instanceof Wallet)) return false;
-        final Wallet other = (Wallet) o;
-        if (!other.canEqual((Object) this)) return false;
+        if (!(o instanceof final Wallet other)) return false;
+        if (!other.canEqual(this)) return false;
         final Object this$privateKey = this.getPrivateKey();
         final Object other$privateKey = other.getPrivateKey();
-        if (this$privateKey == null ? other$privateKey != null : !this$privateKey.equals(other$privateKey))
-            return false;
-        if (!java.util.Arrays.equals(this.getPublicKey(), other.getPublicKey())) return false;
-        return true;
+        if (!Objects.equals(this$privateKey, other$privateKey)) return false;
+        return java.util.Arrays.equals(this.getPublicKey(), other.getPublicKey());
     }
 
     protected boolean canEqual(final Object other) {
@@ -139,7 +133,7 @@ public class Wallet implements Serializable {
         return "Wallet(privateKey=" + this.getPrivateKey() + ", publicKey=" + java.util.Arrays.toString(this.getPublicKey()) + ")";
     }
 
-    public Wallet(final BCECPrivateKey privateKey, final byte[] publicKey) {
+    public Wallet(final PrivateKey privateKey, final byte[] publicKey) {
         this.privateKey = privateKey;
         this.publicKey = publicKey;
     }

@@ -30,10 +30,6 @@ public class TXInput {
      */
     private byte[] pubKey;
 
-    public byte[] hash() {
-        return Hashes.sha256(txId, Numbers.toBytes(txOutputIndex), signature, pubKey);
-    }
-
     /**
      * 交易Id的hash值
      */
@@ -74,6 +70,10 @@ public class TXInput {
      */
     public void setPubKey(final byte[] pubKey) {
         this.pubKey = pubKey;
+    }
+
+    public byte[] hash() {
+        return Hashes.sha256(txId, Numbers.toBytes(txOutputIndex), signature, pubKey);
     }
 
     @Override

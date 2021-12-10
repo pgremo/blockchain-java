@@ -11,7 +11,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
  * @author wangwei
  * @date 2018/02/05
  */
-public class Bytes {
+public final class Bytes {
 
     public static final byte[] EMPTY_BYTES = new byte[32];
 

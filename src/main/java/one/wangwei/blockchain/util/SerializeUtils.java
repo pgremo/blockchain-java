@@ -3,7 +3,6 @@ package one.wangwei.blockchain.util;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.esotericsoftware.kryo.serializers.CollectionSerializer;
 import com.esotericsoftware.kryo.serializers.RecordSerializer;
 import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy;
 import one.wangwei.blockchain.block.Block;
@@ -13,7 +12,6 @@ import one.wangwei.blockchain.transaction.Transaction;
 import org.objenesis.strategy.StdInstantiatorStrategy;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 
@@ -23,7 +21,7 @@ import java.util.List;
  * @author wangwei
  * @date 2018/02/07
  */
-public class SerializeUtils {
+public final class SerializeUtils {
 
     private static final Kryo kryo;
 

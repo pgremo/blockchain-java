@@ -15,10 +15,6 @@ import java.util.Arrays;
  */
 public record TXOutput(int value, byte[] pubKeyHash) {
 
-    public byte[] hash() {
-        return Hashes.sha256(Numbers.toBytes(value), pubKeyHash);
-    }
-
     /**
      * 创建交易输出
      *
@@ -31,6 +27,10 @@ public record TXOutput(int value, byte[] pubKeyHash) {
         var versionedPayload = Base58Check.base58ToBytes(address);
         var pubKeyHash = Arrays.copyOfRange(versionedPayload, 1, versionedPayload.length);
         return new TXOutput(value, pubKeyHash);
+    }
+
+    public byte[] hash() {
+        return Hashes.sha256(Numbers.toBytes(value), pubKeyHash);
     }
 
     /**

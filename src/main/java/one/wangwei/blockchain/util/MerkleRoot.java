@@ -5,7 +5,7 @@ import java.util.LinkedList;
 
 import static one.wangwei.blockchain.util.Hashes.sha256;
 
-public class MerkleRoot {
+public final class MerkleRoot {
     public static byte[] merkleRoot(Deque<byte[]> hashes) {
         if (hashes.size() % 2 != 0) hashes.add(hashes.getLast());
         return iterate(hashes).poll();

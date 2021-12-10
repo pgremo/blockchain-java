@@ -1,17 +1,18 @@
 package one.wangwei.blockchain.block;
 
 import one.wangwei.blockchain.store.RocksDBUtils;
+import one.wangwei.blockchain.transaction.TXInput;
 import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.Bytes;
-import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SignatureException;
+import java.security.*;
 import java.util.*;
-import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.StreamSupport;
+
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
 
 /**
  * <p> 区块链 </p>
@@ -193,15 +194,11 @@ public class Blockchain implements Iterable<Block> {
      * @param txId 交易ID
      * @return
      */
-    private Transaction findTransaction(byte[] txId) {
-        for (var block : this) {
-            for (var tx : block.transactions()) {
-                if (Arrays.equals(tx.getTxId(), txId)) {
-                    return tx;
-                }
-            }
-        }
-        throw new RuntimeException("ERROR: Can not found tx by txId ! ");
+    private Optional<Transaction> findTransaction(byte[] txId) {
+        return StreamSupport.stream(this.spliterator(), false)
+                .flatMap(x -> Arrays.stream(x.transactions()))
+                .filter(x -> Arrays.equals(x.getTxId(), txId))
+                .findFirst();
     }
 
     /**
@@ -210,14 +207,11 @@ public class Blockchain implements Iterable<Block> {
      * @param tx         交易数据
      * @param privateKey 私钥
      */
-    public void signTransaction(Transaction tx, BCECPrivateKey privateKey) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException {
-        // 先来找到这笔新的交易中，交易输入所引用的前面的多笔交易的数据
-        var prevTxMap = new HashMap<String, Transaction>();
-        for (var txInput : tx.getInputs()) {
-            var prevTx = this.findTransaction(txInput.getTxId());
-            prevTxMap.put(Bytes.byteArrayToHex(txInput.getTxId()), prevTx);
-        }
-        tx.sign(privateKey, prevTxMap);
+    public void signTransaction(Transaction tx, PrivateKey privateKey) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
+        var prevTx = Arrays.stream(tx.getInputs())
+                .map(TXInput::getTxId)
+                .collect(toMap(identity(), this::findTransaction));
+        tx.sign(privateKey, prevTx);
     }
 
     /**
@@ -226,20 +220,11 @@ public class Blockchain implements Iterable<Block> {
      * @param tx
      */
     public boolean verifyTransactions(Transaction tx) {
-        if (tx.isCoinbase()) {
-            return true;
-        }
-        var prevTx = new HashMap<String, Transaction>();
-        for (var txInput : tx.getInputs()) {
-            var transaction = this.findTransaction(txInput.getTxId());
-            prevTx.put(Bytes.byteArrayToHex(txInput.getTxId()), transaction);
-        }
-        try {
-            return tx.verify(prevTx);
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Fail to verify transaction ! transaction invalid ! ", e);
-            throw new RuntimeException("Fail to verify transaction ! transaction invalid ! ", e);
-        }
+        if (tx.isCoinbase()) return true;
+        var prevTx = Arrays.stream(tx.getInputs())
+                .map(TXInput::getTxId)
+                .collect(toMap(identity(), this::findTransaction));
+        return tx.verify(prevTx);
     }
 
     public String getLastBlockHash() {
@@ -249,14 +234,11 @@ public class Blockchain implements Iterable<Block> {
     @Override
     public boolean equals(final Object o) {
         if (o == this) return true;
-        if (!(o instanceof Blockchain)) return false;
-        final Blockchain other = (Blockchain) o;
-        if (!other.canEqual((Object) this)) return false;
+        if (!(o instanceof final Blockchain other)) return false;
+        if (!other.canEqual(this)) return false;
         final Object this$lastBlockHash = this.getLastBlockHash();
         final Object other$lastBlockHash = other.getLastBlockHash();
-        if (this$lastBlockHash == null ? other$lastBlockHash != null : !this$lastBlockHash.equals(other$lastBlockHash))
-            return false;
-        return true;
+        return Objects.equals(this$lastBlockHash, other$lastBlockHash);
     }
 
     protected boolean canEqual(final Object other) {

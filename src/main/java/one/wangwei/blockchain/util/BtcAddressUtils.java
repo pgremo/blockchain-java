@@ -8,7 +8,7 @@ import org.bouncycastle.util.Arrays;
  * @author wangwei
  * @date 2018/03/21
  */
-public class BtcAddressUtils {
+public final class BtcAddressUtils {
 
     /**
      * 双重Hash

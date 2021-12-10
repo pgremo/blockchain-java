@@ -17,10 +17,7 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.Security;
-import java.security.SignatureException;
+import java.security.*;
 import java.util.Arrays;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
@@ -66,7 +63,7 @@ public class CLI {
     /**
      * 命令行解析入口
      */
-    public void parse() throws ParseException, NoSuchAlgorithmException, SignatureException, InvalidKeyException {
+    public void parse() throws ParseException, NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
         this.validateArgs(args);
         try {
             var cmd = new DefaultParser().parse(options, args);
@@ -177,7 +174,7 @@ public class CLI {
      * @param amount
      * @throws Exception
      */
-    private void send(String from, String to, int amount) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException {
+    private void send(String from, String to, int amount) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
         // 检查钱包地址是否合法
         Base58Check.base58ToBytes(from);
         // 检查钱包地址是否合法

@@ -3,7 +3,7 @@ package one.wangwei.blockchain.util;
 import java.nio.ByteBuffer;
 import java.util.Optional;
 
-public class Numbers {
+public final class Numbers {
     public static Optional<Integer> parseInteger(String value) {
         try {
             return Optional.of(Integer.valueOf(value));

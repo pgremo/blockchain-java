@@ -1,23 +1,24 @@
 package one.wangwei.blockchain.transaction;
 
 import one.wangwei.blockchain.block.Blockchain;
-import one.wangwei.blockchain.util.*;
+import one.wangwei.blockchain.util.BtcAddressUtils;
+import one.wangwei.blockchain.util.Bytes;
+import one.wangwei.blockchain.util.Hashes;
+import one.wangwei.blockchain.util.Numbers;
 import one.wangwei.blockchain.wallet.WalletUtils;
-import org.bouncycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
-import org.bouncycastle.jce.ECNamedCurveTable;
-import org.bouncycastle.jce.spec.ECPublicKeySpec;
 
-import java.math.BigInteger;
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Optional;
+import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.stream.Collectors;
 
-import static java.util.Arrays.copyOfRange;
 import static java.util.stream.Collectors.toCollection;
-import static one.wangwei.blockchain.util.MerkleRoot.*;
+import static one.wangwei.blockchain.util.MerkleRoot.merkleRoot;
 
 /**
  * 交易
@@ -66,9 +67,7 @@ public class Transaction {
      * @return
      */
     public static Transaction newCoinbaseTX(String to, String data) {
-        if (data.isBlank()) {
-            data = String.format("Reward to \'%s\'", to);
-        }
+        if (data.isBlank()) data = String.format("Reward to \'%s\'", to);
         // 创建交易输入
         var txInput = new TXInput(new byte[0], -1, null, data.getBytes());
         // 创建交易输出
@@ -98,7 +97,7 @@ public class Transaction {
      * @param blockchain 区块链
      * @return
      */
-    public static Transaction newUTXOTransaction(String from, String to, int amount, Blockchain blockchain) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException {
+    public static Transaction newUTXOTransaction(String from, String to, int amount, Blockchain blockchain) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
         // 获取钱包
         var senderWallet = WalletUtils.getInstance().getWallet(from);
         var pubKey = senderWallet.getPublicKey();
@@ -123,7 +122,7 @@ public class Transaction {
         var txOutput = new LinkedList<TXOutput>();
         txOutput.add(TXOutput.newTXOutput(amount, to));
         if (accumulated > amount) {
-            txOutput.add(TXOutput.newTXOutput((accumulated - amount), from));
+            txOutput.add(TXOutput.newTXOutput(accumulated - amount, from));
         }
         var newTx = new Transaction(null, txInputs.toArray(TXInput[]::new), txOutput.toArray(TXOutput[]::new), System.currentTimeMillis());
         newTx.setTxId(newTx.hash());
@@ -157,25 +156,23 @@ public class Transaction {
      * @param privateKey 私钥
      * @param prevTxMap  前面多笔交易集合
      */
-    public void sign(BCECPrivateKey privateKey, Map<String, Transaction> prevTxMap) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+    public void sign(PrivateKey privateKey, Map<byte[], Optional<Transaction>> prevTxMap) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, NoSuchProviderException {
         // coinbase 交易信息不需要签名，因为它不存在交易输入信息
         if (this.isCoinbase()) {
             return;
         }
         // 再次验证一下交易信息中的交易输入是否正确，也就是能否查找对应的交易数据
         for (var txInput : this.getInputs()) {
-            if (prevTxMap.get(Bytes.byteArrayToHex(txInput.getTxId())) == null) {
-                throw new RuntimeException("ERROR: Previous transaction is not correct");
-            }
+            prevTxMap.get(txInput.getTxId()).orElseThrow(() -> new RuntimeException("ERROR: Previous transaction is not correct"));
         }
         // 创建用于签名的交易信息的副本
         var txCopy = this.trimmedCopy();
-        var ecdsaSign = Signature.getInstance("SHA256withECDSA");
+        var ecdsaSign = Signature.getInstance("SHA256withECDSA", "SunEC");
         ecdsaSign.initSign(privateKey);
         for (var i = 0; i < txCopy.getInputs().length; i++) {
             var txInputCopy = txCopy.getInputs()[i];
             // 获取交易输入TxID对应的交易数据
-            var prevTx = prevTxMap.get(Bytes.byteArrayToHex(txInputCopy.getTxId()));
+            var prevTx = prevTxMap.get(txInputCopy.getTxId()).get();
             // 获取交易输入所对应的上一笔交易中的交易输出
             var prevTxOutput = prevTx.getOutputs()[txInputCopy.getTxOutputIndex()];
             txInputCopy.setPubKey(prevTxOutput.pubKeyHash());
@@ -198,47 +195,44 @@ public class Transaction {
      * @param prevTxMap 前面多笔交易集合
      * @return
      */
-    public boolean verify(Map<String, Transaction> prevTxMap) throws Exception {
+    public boolean verify(Map<byte[], Optional<Transaction>> prevTxMap) {
         // coinbase 交易信息不需要签名，也就无需验证
         if (this.isCoinbase()) {
             return true;
         }
         // 再次验证一下交易信息中的交易输入是否正确，也就是能否查找对应的交易数据
         for (var txInput : this.getInputs()) {
-            if (prevTxMap.get(Bytes.byteArrayToHex(txInput.getTxId())) == null) {
-                throw new RuntimeException("ERROR: Previous transaction is not correct");
-            }
+            prevTxMap.get(txInput.getTxId()).orElseThrow(() -> new RuntimeException("ERROR: Previous transaction is not correct"));
         }
         // 创建用于签名验证的交易信息的副本
-        var txCopy = this.trimmedCopy();
-        var ecParameters = ECNamedCurveTable.getParameterSpec("secp256k1");
-        var keyFactory = KeyFactory.getInstance("ECDSA");
-        var ecdsaVerify = Signature.getInstance("SHA256withECDSA");
-        for (var i = 0; i < this.getInputs().length; i++) {
-            var txInput = this.getInputs()[i];
-            // 获取交易输入TxID对应的交易数据
-            var prevTx = prevTxMap.get(Bytes.byteArrayToHex(txInput.getTxId()));
-            // 获取交易输入所对应的上一笔交易中的交易输出
-            var prevTxOutput = prevTx.getOutputs()[txInput.getTxOutputIndex()];
-            var txInputCopy = txCopy.getInputs()[i];
-            txInputCopy.setSignature(null);
-            txInputCopy.setPubKey(prevTxOutput.pubKeyHash());
-            // 得到要签名的数据，即交易ID
-            txCopy.setTxId(txCopy.hash());
-            txInputCopy.setPubKey(null);
-            // 使用椭圆曲线 x,y 点去生成公钥Key
-            var x = new BigInteger(1, copyOfRange(txInput.getPubKey(), 1, 33));
-            var y = new BigInteger(1, copyOfRange(txInput.getPubKey(), 33, 65));
-            var ecPoint = ecParameters.getCurve().createPoint(x, y);
-            var keySpec = new ECPublicKeySpec(ecPoint, ecParameters);
-            var publicKey = keyFactory.generatePublic(keySpec);
-            ecdsaVerify.initVerify(publicKey);
-            ecdsaVerify.update(txCopy.getTxId());
-            if (!ecdsaVerify.verify(txInput.getSignature())) {
-                return false;
+        try {
+            var txCopy = this.trimmedCopy();
+            var keyFactory = KeyFactory.getInstance("ECDSA", "SunEC");
+            var ecdsaVerify = Signature.getInstance("SHA256withECDSA", "SunEC");
+            for (var i = 0; i < this.getInputs().length; i++) {
+                var txInput = this.getInputs()[i];
+                // 获取交易输入TxID对应的交易数据
+                var prevTx = prevTxMap.get(txInput.getTxId()).get();
+                // 获取交易输入所对应的上一笔交易中的交易输出
+                var prevTxOutput = prevTx.getOutputs()[txInput.getTxOutputIndex()];
+                var txInputCopy = txCopy.getInputs()[i];
+                txInputCopy.setSignature(null);
+                txInputCopy.setPubKey(prevTxOutput.pubKeyHash());
+                // 得到要签名的数据，即交易ID
+                txCopy.setTxId(txCopy.hash());
+                txInputCopy.setPubKey(null);
+                var publicKey = keyFactory.generatePublic(new X509EncodedKeySpec(txInput.getPubKey()));
+                ecdsaVerify.initVerify(publicKey);
+                ecdsaVerify.update(txCopy.getTxId());
+                if (!ecdsaVerify.verify(txInput.getSignature())) {
+                    return false;
+                }
             }
+            return true;
+        } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException | InvalidKeySpecException | NoSuchProviderException e) {
+            logger.log(Level.SEVERE, "Fail to verify transaction ! transaction invalid ! ", e);
+            return false;
         }
-        return true;
     }
 
     /**
@@ -279,14 +273,12 @@ public class Transaction {
     @Override
     public boolean equals(final Object o) {
         if (o == this) return true;
-        if (!(o instanceof Transaction)) return false;
-        final Transaction other = (Transaction) o;
-        if (!other.canEqual((Object) this)) return false;
+        if (!(o instanceof final Transaction other)) return false;
+        if (!other.canEqual(this)) return false;
         if (this.getCreateTime() != other.getCreateTime()) return false;
         if (!Arrays.equals(this.getTxId(), other.getTxId())) return false;
         if (!Arrays.deepEquals(this.getInputs(), other.getInputs())) return false;
-        if (!Arrays.deepEquals(this.getOutputs(), other.getOutputs())) return false;
-        return true;
+        return Arrays.deepEquals(this.getOutputs(), other.getOutputs());
     }
 
     protected boolean canEqual(final Object other) {

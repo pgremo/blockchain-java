@@ -19,6 +19,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.TreeMap;
 
 /**
  * 序列化工具类
@@ -48,6 +49,7 @@ public final class SerializeUtils {
             kryo.register(SealedObject.class, new JavaSerializer());
             kryo.register(Transaction.class);
             kryo.register(Transaction[].class);
+            kryo.register(TreeMap.class, new JavaSerializer());
             kryo.register(TXInput.class);
             kryo.register(TXInput[].class);
             kryo.register(TXOutput.class);

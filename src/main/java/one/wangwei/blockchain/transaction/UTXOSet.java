@@ -71,7 +71,11 @@ public class UTXOSet {
         synchronized (this.$lock) {
             logger.info("Start to reIndex UTXO set !");
             RocksDBUtils.getInstance().cleanChainStateBucket();
-            blockchain.findAllUTXOs().forEach((key, value) -> RocksDBUtils.getInstance().putUTXOs(key, value.toArray(TXOutput[]::new)));
+            blockchain.findAllUTXOs().forEach((key, value) -> {
+                Bytes.hexToByteArray(key).ifPresent(x -> {
+                    RocksDBUtils.getInstance().putUTXOs(x, value.toArray(TXOutput[]::new));
+                });
+            });
             logger.info("ReIndex UTXO set finished ! ");
         }
     }
@@ -98,8 +102,7 @@ public class UTXOSet {
                 for (var txInput : transaction.getInputs()) {
                     // 余下未被使用的交易输出
                     var remainderUTXOs = new LinkedList<TXOutput>();
-                    var txId = Bytes.byteArrayToHex(txInput.getTxId());
-                    var txOutputs = RocksDBUtils.getInstance().getUTXOs(txId);
+                    var txOutputs = RocksDBUtils.getInstance().getUTXOs(txInput.getTxId());
 
                     if (txOutputs == null) continue;
 
@@ -110,15 +113,14 @@ public class UTXOSet {
                     }
                     // 没有剩余则删除，否则更新
                     if (remainderUTXOs.isEmpty()) {
-                        RocksDBUtils.getInstance().deleteUTXOs(txId);
+                        RocksDBUtils.getInstance().deleteUTXOs(txInput.getTxId());
                     } else {
-                        RocksDBUtils.getInstance().putUTXOs(txId, remainderUTXOs.toArray(TXOutput[]::new));
+                        RocksDBUtils.getInstance().putUTXOs(txInput.getTxId(), remainderUTXOs.toArray(TXOutput[]::new));
                     }
                 }
                 // 新的交易输出保存到DB中
                 var txOutputs = transaction.getOutputs();
-                var txId = Bytes.byteArrayToHex(transaction.getTxId());
-                RocksDBUtils.getInstance().putUTXOs(txId, txOutputs);
+                RocksDBUtils.getInstance().putUTXOs(transaction.getTxId(), txOutputs);
             }
         }
     }

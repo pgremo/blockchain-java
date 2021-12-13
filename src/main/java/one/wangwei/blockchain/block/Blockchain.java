@@ -11,9 +11,6 @@ import java.util.*;
 import java.util.logging.Logger;
 import java.util.stream.StreamSupport;
 
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
-
 /**
  * <p> 区块链 </p>
  *
@@ -87,7 +84,6 @@ public class Blockchain implements Iterable<Block> {
      * @param block
      */
     private void addBlock(Block block) {
-        System.out.println(block);
         RocksDBUtils.getInstance().putLastBlockHash(block.hash());
         RocksDBUtils.getInstance().putBlock(block);
         this.lastBlockHash = block.hash();

@@ -2,14 +2,12 @@ package one.wangwei.blockchain.store;
 
 import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.transaction.TXOutput;
-import one.wangwei.blockchain.util.Bytes;
 import one.wangwei.blockchain.util.SerializeUtils;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.Serializable;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -107,7 +105,7 @@ public class RocksDBUtils {
             if (chainstateBucketBytes != null) {
                 chainstateBucket = SerializeUtils.deserialize(chainstateBucketBytes);
             } else {
-                chainstateBucket = new HashMap<>();
+                chainstateBucket = new TreeMap<>((Comparator<byte[]> & Serializable) Arrays::compare);
                 db.put(chainstateBucketKey, SerializeUtils.serialize(chainstateBucket));
             }
         } catch (RocksDBException e) {
@@ -137,11 +135,8 @@ public class RocksDBUtils {
      * @return
      */
     public String getLastBlockHash() {
-        var lastBlockHashBytes = blocksBucket.get(LAST_BLOCK_KEY);
-        if (lastBlockHashBytes != null) {
-            return SerializeUtils.deserialize(lastBlockHashBytes);
-        }
-        return "";
+        var last = blocksBucket.get(LAST_BLOCK_KEY);
+        return last != null ? SerializeUtils.deserialize(last) : "";
     }
 
     /**
@@ -191,16 +186,14 @@ public class RocksDBUtils {
      * @param key   交易ID
      * @param utxos UTXOs
      */
-    public void putUTXOs(String key, TXOutput[] utxos) {
-        Bytes.hexToByteArray(key).ifPresent(x -> {
-            try {
-                chainstateBucket.put(x, SerializeUtils.serialize(utxos));
-                db.put(SerializeUtils.serialize(CHAINSTATE_BUCKET_KEY), SerializeUtils.serialize(chainstateBucket));
-            } catch (Exception e) {
-                logger.log(Level.SEVERE, "Fail to put UTXOs into chainstate bucket ! key=" + key, e);
-                throw new RuntimeException("Fail to put UTXOs into chainstate bucket ! key=" + key, e);
-            }
-        });
+    public void putUTXOs(byte[] key, TXOutput[] utxos) {
+        try {
+            chainstateBucket.put(key, SerializeUtils.serialize(utxos));
+            db.put(SerializeUtils.serialize(CHAINSTATE_BUCKET_KEY), SerializeUtils.serialize(chainstateBucket));
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Fail to put UTXOs into chainstate bucket ! key=" + key, e);
+            throw new RuntimeException("Fail to put UTXOs into chainstate bucket ! key=" + key, e);
+        }
     }
 
     /**
@@ -208,10 +201,10 @@ public class RocksDBUtils {
      *
      * @param key 交易ID
      */
-    public TXOutput[] getUTXOs(String key) {
-        return Bytes.hexToByteArray(key)
-                .map(x -> chainstateBucket.get(x))
-                .map(SerializeUtils::<TXOutput[]>deserialize).orElse(null);
+    public TXOutput[] getUTXOs(byte[] key) {
+        var data = chainstateBucket.get(key);
+        if (data == null) return null;
+        return SerializeUtils.deserialize(data);
     }
 
     /**
@@ -219,16 +212,14 @@ public class RocksDBUtils {
      *
      * @param key 交易ID
      */
-    public void deleteUTXOs(String key) {
-        Bytes.hexToByteArray(key).ifPresent(x -> {
-            try {
-                chainstateBucket.remove(x);
-                db.put(SerializeUtils.serialize(CHAINSTATE_BUCKET_KEY), SerializeUtils.serialize(chainstateBucket));
-            } catch (Exception e) {
-                logger.log(Level.SEVERE, "Fail to delete UTXOs by key ! key=" + key, e);
-                throw new RuntimeException("Fail to delete UTXOs by key ! key=" + key, e);
-            }
-        });
+    public void deleteUTXOs(byte[] key) {
+        try {
+            chainstateBucket.remove(key);
+            db.put(SerializeUtils.serialize(CHAINSTATE_BUCKET_KEY), SerializeUtils.serialize(chainstateBucket));
+        } catch (Exception e) {
+            logger.log(Level.SEVERE, "Fail to delete UTXOs by key ! key=" + key, e);
+            throw new RuntimeException("Fail to delete UTXOs by key ! key=" + key, e);
+        }
     }
 
     /**

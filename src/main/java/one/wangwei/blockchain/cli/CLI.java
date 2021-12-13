@@ -95,6 +95,8 @@ public class CLI {
                 case "printchain" -> this.printChain();
                 default -> this.help();
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         } finally {
             RocksDBUtils.getInstance().closeDB();
         }

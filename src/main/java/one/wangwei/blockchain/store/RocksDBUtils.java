@@ -2,12 +2,16 @@ package one.wangwei.blockchain.store;
 
 import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.transaction.TXOutput;
+import one.wangwei.blockchain.util.Bytes;
 import one.wangwei.blockchain.util.SerializeUtils;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 import java.io.Serializable;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -23,10 +27,6 @@ public class RocksDBUtils {
      * 区块链数据文件
      */
     private static final String DB_FILE = "blockchain.db";
-    /**
-     * 区块桶Key
-     */
-    private static final String BLOCKS_BUCKET_KEY = "blocks";
     /**
      * 链状态桶Key
      */
@@ -50,17 +50,12 @@ public class RocksDBUtils {
 
     private RocksDB db;
     /**
-     * block buckets
-     */
-    private Map<String, byte[]> blocksBucket;
-    /**
      * chainstate buckets
      */
     private Map<byte[], byte[]> chainstateBucket;
 
     private RocksDBUtils() {
         openDB();
-        initBlockBucket();
         initChainStateBucket();
     }
 
@@ -73,25 +68,6 @@ public class RocksDBUtils {
         } catch (RocksDBException e) {
             logger.log(Level.SEVERE, "Fail to open db ! ", e);
             throw new RuntimeException("Fail to open db ! ", e);
-        }
-    }
-
-    /**
-     * 初始化 blocks 数据桶
-     */
-    private void initBlockBucket() {
-        try {
-            var blockBucketKey = SerializeUtils.serialize(BLOCKS_BUCKET_KEY);
-            var blockBucketBytes = db.get(blockBucketKey);
-            if (blockBucketBytes != null) {
-                blocksBucket = SerializeUtils.deserialize(blockBucketBytes);
-            } else {
-                blocksBucket = new HashMap<>();
-                db.put(blockBucketKey, SerializeUtils.serialize(blocksBucket));
-            }
-        } catch (RocksDBException e) {
-            logger.log(Level.SEVERE, "Fail to init block bucket ! ", e);
-            throw new RuntimeException("Fail to init block bucket ! ", e);
         }
     }
 
@@ -121,8 +97,7 @@ public class RocksDBUtils {
      */
     public void putLastBlockHash(String tipBlockHash) {
         try {
-            blocksBucket.put(LAST_BLOCK_KEY, SerializeUtils.serialize(tipBlockHash));
-            db.put(SerializeUtils.serialize(BLOCKS_BUCKET_KEY), SerializeUtils.serialize(blocksBucket));
+            db.put(SerializeUtils.serialize(LAST_BLOCK_KEY), SerializeUtils.serialize(tipBlockHash));
         } catch (RocksDBException e) {
             logger.log(Level.SEVERE, "Fail to put last block hash ! tipBlockHash=" + tipBlockHash, e);
             throw new RuntimeException("Fail to put last block hash ! tipBlockHash=" + tipBlockHash, e);
@@ -135,8 +110,13 @@ public class RocksDBUtils {
      * @return
      */
     public String getLastBlockHash() {
-        var last = blocksBucket.get(LAST_BLOCK_KEY);
-        return last != null ? SerializeUtils.deserialize(last) : "";
+        try {
+            byte[] bytes = db.get(SerializeUtils.serialize(LAST_BLOCK_KEY));
+            return bytes == null ? "" : SerializeUtils.deserialize(bytes);
+        } catch (RocksDBException e) {
+            logger.log(Level.SEVERE, "Fail to get last block hash !", e);
+            throw new RuntimeException("Fail to get last block hash !", e);
+        }
     }
 
     /**
@@ -145,13 +125,17 @@ public class RocksDBUtils {
      * @param block
      */
     public void putBlock(Block block) {
-        try {
-            blocksBucket.put(block.hash(), SerializeUtils.serialize(block));
-            db.put(SerializeUtils.serialize(BLOCKS_BUCKET_KEY), SerializeUtils.serialize(blocksBucket));
-        } catch (RocksDBException e) {
-            logger.log(Level.SEVERE, "Fail to put block ! block=" + block, e);
-            throw new RuntimeException("Fail to put block ! block=" + block, e);
-        }
+        Bytes.hexToByteArray(block.hash()).ifPresent(x -> {
+            try {
+                var key = new byte[33];
+                key[0] = 'b';
+                System.arraycopy(x, 0, key, 1, x.length);
+                db.put(key, SerializeUtils.serialize(block));
+            } catch (RocksDBException e) {
+                logger.log(Level.SEVERE, "Fail to put block ! block=" + block, e);
+                throw new RuntimeException("Fail to put block ! block=" + block, e);
+            }
+        });
     }
 
     /**
@@ -161,11 +145,17 @@ public class RocksDBUtils {
      * @return
      */
     public Block getBlock(String blockHash) {
-        var blockBytes = blocksBucket.get(blockHash);
-        if (blockBytes != null) {
-            return SerializeUtils.deserialize(blockBytes);
-        }
-        throw new RuntimeException("Fail to get block ! blockHash=" + blockHash);
+        return Bytes.hexToByteArray(blockHash).map(x -> {
+            try {
+                var key = new byte[33];
+                key[0] = 'b';
+                System.arraycopy(x, 0, key, 1, x.length);
+                return SerializeUtils.<Block>deserialize(db.get(key));
+            } catch (RocksDBException e) {
+                logger.log(Level.SEVERE, "Fail to put block ! block=" + blockHash, e);
+                throw new RuntimeException("Fail to put block ! block=" + blockHash, e);
+            }
+        }).orElseThrow();
     }
 
     /**

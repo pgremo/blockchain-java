@@ -8,12 +8,11 @@ import javax.crypto.CipherOutputStream;
 import javax.crypto.SealedObject;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.logging.Level;
+import java.util.*;
 import java.util.logging.Logger;
+
+import static java.util.logging.Level.SEVERE;
+import static javax.crypto.Cipher.ENCRYPT_MODE;
 
 /**
  * 钱包工具类
@@ -74,7 +73,7 @@ public class WalletUtils {
      * @return
      */
     public Set<String> getAddresses() {
-        return this.loadFromDisk().orElseThrow().getAddresses();
+        return loadFromDisk().orElseThrow().getAddresses();
     }
 
     /**
@@ -84,7 +83,7 @@ public class WalletUtils {
      * @return
      */
     public Wallet getWallet(String address) {
-        return this.loadFromDisk().orElseThrow().getWallet(address);
+        return loadFromDisk().orElseThrow().getWallet(address);
     }
 
     /**
@@ -93,7 +92,7 @@ public class WalletUtils {
      * @return
      */
     public Wallet createWallet() {
-        var wallet = new Wallet();
+        var wallet = Wallet.createWallet();
         var wallets = loadFromDisk().orElse(new Wallets());
         wallets.addWallet(wallet);
         saveToDisk(wallets);
@@ -111,18 +110,19 @@ public class WalletUtils {
             }
             var sks = new SecretKeySpec(CIPHER_TEXT, ALGORITHM);
             var cipher = Cipher.getInstance(ALGORITHM);
-            cipher.init(Cipher.ENCRYPT_MODE, sks);
+            cipher.init(ENCRYPT_MODE, sks);
             try (var outputStream = new ObjectOutputStream(new CipherOutputStream(new BufferedOutputStream(new FileOutputStream(WALLET_FILE)), cipher))) {
                 outputStream.writeObject(new SealedObject(wallets, cipher));
             }
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Fail to save wallet to disk !", e);
+            logger.log(SEVERE, "Fail to save wallet to disk !", e);
             throw new RuntimeException("Fail to save wallet to disk !");
         }
     }
 
     /**
      * 加载钱包数据
+     *
      * @return
      */
     private Optional<Wallets> loadFromDisk() {
@@ -144,8 +144,9 @@ public class WalletUtils {
      * 钱包存储对象
      */
     public static class Wallets implements Serializable {
+        @Serial
         private static final long serialVersionUID = -2542070981569243131L;
-        private Map<String, Wallet> walletMap = new HashMap();
+        private final Map<String, Wallet> walletMap = new HashMap<>();
 
         /**
          * 添加钱包
@@ -153,12 +154,7 @@ public class WalletUtils {
          * @param wallet
          */
         private void addWallet(Wallet wallet) {
-            try {
-                this.walletMap.put(wallet.getAddress(), wallet);
-            } catch (Exception e) {
-                logger.log(Level.SEVERE, "Fail to add wallet ! ", e);
-                throw new RuntimeException("Fail to add wallet !");
-            }
+            this.walletMap.put(wallet.getAddress(), wallet);
         }
 
         /**
@@ -167,10 +163,6 @@ public class WalletUtils {
          * @return
          */
         Set<String> getAddresses() {
-            if (walletMap == null) {
-                logger.severe("Fail to get address ! walletMap is null ! ");
-                throw new RuntimeException("Fail to get addresses ! ");
-            }
             return walletMap.keySet();
         }
 
@@ -183,71 +175,37 @@ public class WalletUtils {
         Wallet getWallet(String address) {
             // 检查钱包地址是否合法
             try {
-                Base58Check.base58ToBytes(address);
+                Base58Check.decodeChecked(address);
             } catch (Exception e) {
-                logger.log(Level.SEVERE, "Fail to get wallet ! address invalid ! address=" + address, e);
+                logger.log(SEVERE, "Fail to get wallet ! address invalid ! address=" + address, e);
                 throw new RuntimeException("Fail to get wallet ! ");
             }
             var wallet = walletMap.get(address);
             if (wallet == null) {
-                logger.log(Level.SEVERE, "Fail to get wallet ! wallet don`t exist ! address=" + address);
+                logger.log(SEVERE, "Fail to get wallet ! wallet don`t exist ! address=" + address);
                 throw new RuntimeException("Fail to get wallet ! ");
             }
             return wallet;
         }
 
-        @SuppressWarnings("all")
-        public Map<String, Wallet> getWalletMap() {
-            return this.walletMap;
-        }
-
-        @SuppressWarnings("all")
-        public void setWalletMap(final Map<String, Wallet> walletMap) {
-            this.walletMap = walletMap;
-        }
-
         @Override
-        @SuppressWarnings("all")
         public boolean equals(final Object o) {
             if (o == this) return true;
-            if (!(o instanceof Wallets)) return false;
-            final Wallets other = (Wallets) o;
-            if (!other.canEqual((Object) this)) return false;
-            final Object this$walletMap = this.getWalletMap();
-            final Object other$walletMap = other.getWalletMap();
-            if (this$walletMap == null ? other$walletMap != null : !this$walletMap.equals(other$walletMap))
-                return false;
-            return true;
-        }
-
-        @SuppressWarnings("all")
-        protected boolean canEqual(final Object other) {
-            return other instanceof Wallets;
+            if (!(o instanceof final Wallets other)) return false;
+            return Objects.equals(walletMap, other.walletMap);
         }
 
         @Override
-        @SuppressWarnings("all")
         public int hashCode() {
             final int PRIME = 59;
             int result = 1;
-            final Object $walletMap = this.getWalletMap();
-            result = result * PRIME + ($walletMap == null ? 43 : $walletMap.hashCode());
+            result = result * PRIME + walletMap.hashCode();
             return result;
         }
 
         @Override
-        @SuppressWarnings("all")
         public String toString() {
-            return "WalletUtils.Wallets(walletMap=" + this.getWalletMap() + ")";
-        }
-
-        @SuppressWarnings("all")
-        public Wallets() {
-        }
-
-        @SuppressWarnings("all")
-        public Wallets(final Map<String, Wallet> walletMap) {
-            this.walletMap = walletMap;
+            return "WalletUtils.Wallets(walletMap=" + walletMap + ")";
         }
     }
 }

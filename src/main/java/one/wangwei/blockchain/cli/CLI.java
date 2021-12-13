@@ -16,7 +16,6 @@ import org.apache.commons.cli.ParseException;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.security.*;
 import java.util.Arrays;
 import java.util.logging.LogManager;
@@ -155,9 +154,9 @@ public class CLI {
      */
     private void getBalance(String address) {
         // 检查钱包地址是否合法
-        Base58Check.base58ToBytes(address);
+        Base58Check.decodeChecked(address);
         // 得到公钥Hash值
-        var versionedPayload = Base58Check.base58ToBytes(address);
+        var versionedPayload = Base58Check.decodeChecked(address);
         var pubKeyHash = Arrays.copyOfRange(versionedPayload, 1, versionedPayload.length);
         var blockchain = Blockchain.createBlockchain(address);
         var utxoSet = new UTXOSet(blockchain);
@@ -176,9 +175,9 @@ public class CLI {
      */
     private void send(String from, String to, int amount) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
         // 检查钱包地址是否合法
-        Base58Check.base58ToBytes(from);
+        Base58Check.decodeChecked(from);
         // 检查钱包地址是否合法
-        Base58Check.base58ToBytes(to);
+        Base58Check.decodeChecked(to);
         if (amount < 1) {
             logger.severe("ERROR: amount invalid ! amount=%s".formatted(amount));
             throw new RuntimeException("ERROR: amount invalid ! amount=" + amount);

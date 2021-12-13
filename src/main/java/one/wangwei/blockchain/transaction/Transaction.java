@@ -100,7 +100,7 @@ public class Transaction {
     public static Transaction newUTXOTransaction(String from, String to, int amount, Blockchain blockchain) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
         // 获取钱包
         var senderWallet = WalletUtils.getInstance().getWallet(from);
-        var pubKey = senderWallet.getPublicKey();
+        var pubKey = senderWallet.publicKey();
         var pubKeyHash = BtcAddressUtils.ripeMD160Hash(pubKey);
         var result = new UTXOSet(blockchain).findSpendableOutputs(pubKeyHash, amount);
         var accumulated = result.accumulated();
@@ -127,7 +127,7 @@ public class Transaction {
         var newTx = new Transaction(null, txInputs.toArray(TXInput[]::new), txOutput.toArray(TXOutput[]::new), System.currentTimeMillis());
         newTx.setTxId(newTx.hash());
         // 进行交易签名
-        blockchain.signTransaction(newTx, senderWallet.getPrivateKey());
+        blockchain.signTransaction(newTx, senderWallet.privateKey());
         return newTx;
     }
 

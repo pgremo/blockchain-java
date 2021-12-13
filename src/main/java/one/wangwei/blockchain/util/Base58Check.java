@@ -24,8 +24,8 @@ public final class Base58Check {
      * @param data
      * @return
      */
-    public static String bytesToBase58(byte[] data) {
-        return rawBytesToBase58(addCheckHash(data));
+    public static String encodeChecked(byte[] data) {
+        return encode(addCheck(data));
     }
 
     /**
@@ -34,7 +34,7 @@ public final class Base58Check {
      * @param data
      * @return
      */
-    public static String rawBytesToBase58(byte[] data) {
+    public static String encode(byte[] data) {
         // Convert to base-58 string
         var sb = new StringBuilder();
         var num = new BigInteger(1, data);
@@ -58,7 +58,7 @@ public final class Base58Check {
      * @param data
      * @return
      */
-    static byte[] addCheckHash(byte[] data) {
+    static byte[] addCheck(byte[] data) {
         try {
             var hash = Arrays.copyOf(BtcAddressUtils.doubleHash(data), 4);
             var buf = new ByteArrayOutputStream();
@@ -78,12 +78,12 @@ public final class Base58Check {
      * @param s
      * @return
      */
-    public static byte[] base58ToBytes(String s) {
-        var concat = base58ToRawBytes(s);
-        var data = Arrays.copyOf(concat, concat.length - 4);
-        var hash = Arrays.copyOfRange(concat, concat.length - 4, concat.length);
-        var rehash = Arrays.copyOf(BtcAddressUtils.doubleHash(data), 4);
-        if (!Arrays.equals(rehash, hash)) {
+    public static byte[] decodeChecked(String s) {
+        var decoded = decode(s);
+        var data = Arrays.copyOf(decoded, decoded.length - 4);
+        var check = Arrays.copyOfRange(decoded, decoded.length - 4, decoded.length);
+        var hash = Arrays.copyOf(BtcAddressUtils.doubleHash(data), 4);
+        if (!Arrays.equals(hash, check)) {
             throw new IllegalArgumentException("Checksum mismatch");
         }
         return data;
@@ -96,7 +96,7 @@ public final class Base58Check {
      * @param s
      * @return
      */
-    static byte[] base58ToRawBytes(String s) {
+    static byte[] decode(String s) {
         // Parse base-58 string
         var num = BigInteger.ZERO;
         for (var i = 0; i < s.length(); i++) {

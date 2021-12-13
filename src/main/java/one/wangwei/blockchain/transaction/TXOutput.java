@@ -24,7 +24,7 @@ public record TXOutput(int value, byte[] pubKeyHash) {
      */
     public static TXOutput newTXOutput(int value, String address) {
         // 反向转化为 byte 数组
-        var versionedPayload = Base58Check.base58ToBytes(address);
+        var versionedPayload = Base58Check.decodeChecked(address);
         var pubKeyHash = Arrays.copyOfRange(versionedPayload, 1, versionedPayload.length);
         return new TXOutput(value, pubKeyHash);
     }

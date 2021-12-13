@@ -32,7 +32,7 @@ public class UTXOSet {
      * @param amount     花费金额
      */
     public SpendableOutputResult findSpendableOutputs(byte[] pubKeyHash, int amount) {
-        var unspentOuts = new HashMap<String, List<Integer>>();
+        var unspentOuts = new HashMap<byte[], List<Integer>>();
         var accumulated = 0;
         var chainstateBucket = RocksDBUtils.getInstance().getChainstateBucket();
         for (var entry : chainstateBucket.entrySet()) {

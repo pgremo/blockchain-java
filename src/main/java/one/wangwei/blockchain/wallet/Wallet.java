@@ -1,5 +1,6 @@
 package one.wangwei.blockchain.wallet;
 
+import java.io.Serializable;
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
 import java.util.logging.Level;
@@ -16,7 +17,7 @@ import static one.wangwei.blockchain.util.BtcAddressUtils.ripeMD160Hash;
  * @author wangwei
  * @date 2018/03/14
  */
-public record Wallet(PrivateKey privateKey, byte[] publicKey) {
+public record Wallet(PrivateKey privateKey, byte[] publicKey) implements Serializable {
     private static final Logger logger = Logger.getLogger(Wallet.class.getName());
 
     public static Wallet createWallet() {

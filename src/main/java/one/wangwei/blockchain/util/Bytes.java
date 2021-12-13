@@ -18,6 +18,7 @@ public final class Bytes {
     private static final byte[] HEX_ARRAY = "0123456789ABCDEF".getBytes(UTF_8);
 
     public static String byteArrayToHex(byte[] value) {
+        if (value == null) return "";
         final byte[] data = new byte[value.length * 2];
         for (int j = 0; j < value.length; j++) {
             final int v = value[j] & 0xFF;

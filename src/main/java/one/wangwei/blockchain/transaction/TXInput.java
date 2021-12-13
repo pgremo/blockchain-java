@@ -106,7 +106,7 @@ public class TXInput {
 
     @Override
     public String toString() {
-        return "TXInput[txId=" + Arrays.toString(this.getTxId()) + ", txOutputIndex=" + this.getTxOutputIndex() + ", signature=" + Arrays.toString(this.getSignature()) + ", pubKey=" + Bytes.byteArrayToHex(this.getPubKey()) + "]";
+        return "TXInput[txId=" + Bytes.byteArrayToHex(this.getTxId()) + ", txOutputIndex=" + this.getTxOutputIndex() + ", signature=" + Bytes.byteArrayToHex(this.getSignature()) + ", pubKey=" + Bytes.byteArrayToHex(this.getPubKey()) + "]";
     }
 
     public TXInput(final byte[] txId, final int txOutputIndex, final byte[] signature, final byte[] pubKey) {

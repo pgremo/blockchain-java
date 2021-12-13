@@ -3,6 +3,7 @@ package one.wangwei.blockchain.util;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+import com.esotericsoftware.kryo.serializers.JavaSerializer;
 import com.esotericsoftware.kryo.serializers.RecordSerializer;
 import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy;
 import one.wangwei.blockchain.block.Block;
@@ -11,6 +12,10 @@ import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
 import org.objenesis.strategy.StdInstantiatorStrategy;
 
+import javax.crypto.SealedObject;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,26 +31,32 @@ public final class SerializeUtils {
     private static final Kryo kryo;
 
     static {
-        kryo = new Kryo();
+        try {
+            kryo = new Kryo();
 
-        kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
+            kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
 
-        final RecordSerializer<?> rs = new RecordSerializer<>();
-        rs.setFixedFieldTypes(true);
-        kryo.addDefaultSerializer(Record.class, rs);
+            final RecordSerializer<?> rs = new RecordSerializer<>();
+            rs.setFixedFieldTypes(true);
+            kryo.addDefaultSerializer(Record.class, rs);
 
-        kryo.register(List.class);
-        kryo.register(ArrayList.class);
-        kryo.register(HashMap.class);
-        kryo.register(Transaction.class);
-        kryo.register(Transaction[].class);
-        kryo.register(TXInput.class);
-        kryo.register(TXInput[].class);
-        kryo.register(TXOutput.class);
-        kryo.register(TXOutput[].class);
-        kryo.register(ArrayList.class);
-        kryo.register(byte[].class);
-        kryo.register(Block.class);
+            kryo.register(ArrayList.class);
+            kryo.register(Block.class);
+            kryo.register(HashMap.class);
+            kryo.register(Instant.class);
+            kryo.register(List.class);
+            kryo.register(SealedObject.class, new JavaSerializer());
+            kryo.register(Transaction.class);
+            kryo.register(Transaction[].class);
+            kryo.register(TXInput.class);
+            kryo.register(TXInput[].class);
+            kryo.register(TXOutput.class);
+            kryo.register(TXOutput[].class);
+            kryo.register(byte[].class);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     /**
@@ -55,6 +66,12 @@ public final class SerializeUtils {
      * @return
      */
     public static <T> T deserialize(byte[] bytes) {
+        try (var input = new Input(bytes)) {
+            return (T) kryo.readClassAndObject(input);
+        }
+    }
+
+    public static <T> T deserialize(InputStream bytes) {
         try (var input = new Input(bytes)) {
             return (T) kryo.readClassAndObject(input);
         }
@@ -71,5 +88,9 @@ public final class SerializeUtils {
             kryo.writeClassAndObject(output, object);
             return output.toBytes();
         }
+    }
+
+    public static void serializeToStream(Object object, OutputStream out) {
+        kryo.writeClassAndObject(new Output(out), object);
     }
 }

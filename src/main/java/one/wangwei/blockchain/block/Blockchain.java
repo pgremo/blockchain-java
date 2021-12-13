@@ -195,7 +195,7 @@ public class Blockchain implements Iterable<Block> {
      * @return
      */
     private Optional<Transaction> findTransaction(byte[] txId) {
-        return StreamSupport.stream(this.spliterator(), false)
+        return StreamSupport.stream(spliterator(), false)
                 .flatMap(x -> Arrays.stream(x.transactions()))
                 .filter(x -> Arrays.equals(x.getTxId(), txId))
                 .findFirst();
@@ -208,9 +208,11 @@ public class Blockchain implements Iterable<Block> {
      * @param privateKey 私钥
      */
     public void signTransaction(Transaction tx, PrivateKey privateKey) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
-        var prevTx = Arrays.stream(tx.getInputs())
-                .map(TXInput::getTxId)
-                .collect(toMap(identity(), this::findTransaction));
+        var prevTx = new TreeMap<byte[], Transaction>(Arrays::compare);
+        for (TXInput txInput : tx.getInputs()) {
+            byte[] id = txInput.getTxId();
+            findTransaction(id).ifPresent(transaction -> prevTx.putIfAbsent(id, transaction));
+        }
         tx.sign(privateKey, prevTx);
     }
 
@@ -221,9 +223,11 @@ public class Blockchain implements Iterable<Block> {
      */
     public boolean verifyTransactions(Transaction tx) {
         if (tx.isCoinbase()) return true;
-        var prevTx = Arrays.stream(tx.getInputs())
-                .map(TXInput::getTxId)
-                .collect(toMap(identity(), this::findTransaction));
+        var prevTx = new TreeMap<byte[], Transaction>(Arrays::compare);
+        for (TXInput txInput : tx.getInputs()) {
+            byte[] id = txInput.getTxId();
+            findTransaction(id).ifPresent(transaction -> prevTx.putIfAbsent(id, transaction));
+        }
         return tx.verify(prevTx);
     }
 

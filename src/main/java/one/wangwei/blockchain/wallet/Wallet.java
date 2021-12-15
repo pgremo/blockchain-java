@@ -3,9 +3,8 @@ package one.wangwei.blockchain.wallet;
 import java.io.Serializable;
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
+import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.arraycopy;
 import static one.wangwei.blockchain.util.Base58Check.encode;
 import static one.wangwei.blockchain.util.BtcAddressUtils.checksum;
@@ -18,7 +17,7 @@ import static one.wangwei.blockchain.util.BtcAddressUtils.ripeMD160Hash;
  * @date 2018/03/14
  */
 public record Wallet(PrivateKey privateKey, byte[] publicKey) implements Serializable {
-    private static final Logger logger = Logger.getLogger(Wallet.class.getName());
+    private static final System.Logger logger = System.getLogger(Wallet.class.getName());
 
     public static Wallet createWallet() {
         try {
@@ -27,7 +26,7 @@ public record Wallet(PrivateKey privateKey, byte[] publicKey) implements Seriali
             var publicKey = keyPair.getPublic().getEncoded();
             return new Wallet(privateKey, publicKey);
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Fail to init wallet ! ", e);
+            logger.log(ERROR, "Fail to init wallet ! ", e);
             throw new RuntimeException("Fail to init wallet ! ", e);
         }
     }

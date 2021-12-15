@@ -16,7 +16,10 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import java.io.IOException;
 import java.security.*;
 import java.util.logging.LogManager;
-import java.util.logging.Logger;
+
+import static java.lang.System.*;
+import static java.lang.System.Logger.Level.ERROR;
+import static java.lang.System.Logger.Level.INFO;
 
 /**
  * 命令行解析器
@@ -25,7 +28,7 @@ import java.util.logging.Logger;
  * @date 2018/03/08
  */
 public class CLI {
-    private static final Logger logger = Logger.getLogger(CLI.class.getName());
+    private static final Logger logger = getLogger(CLI.class.getName());
     private final String[] args;
     private final Options options = new Options();
 
@@ -117,7 +120,7 @@ public class CLI {
      */
     private void createBlockchain(String address) {
         Blockchain.createBlockchain(address);
-        logger.info("Done ! ");
+        logger.log(INFO, "Done ! ");
     }
 
     /**
@@ -127,7 +130,7 @@ public class CLI {
      */
     private void createWallet() {
         var wallet = WalletUtils.getInstance().createWallet();
-        logger.info(() -> "wallet address : %s".formatted(wallet.getAddress()));
+        logger.log(INFO, () -> "wallet address : %s".formatted(wallet.getAddress()));
     }
 
     /**
@@ -136,11 +139,11 @@ public class CLI {
     private void printAddresses() {
         var addresses = WalletUtils.getInstance().getAddresses();
         if (addresses == null || addresses.isEmpty()) {
-            logger.info("There isn\'t address");
+            logger.log(INFO, "There isn\'t address");
             return;
         }
         for (var address : addresses) {
-            logger.info(() -> "Wallet address: %s".formatted(address));
+            logger.log(INFO, () -> "Wallet address: %s".formatted(address));
         }
     }
 
@@ -155,7 +158,7 @@ public class CLI {
         // 得到公钥Hash值
         var blockchain = Blockchain.createBlockchain(address);
         var txOutputs = Transaction.getUnspent(Integer.MAX_VALUE, blockchain, WalletUtils.getInstance().getWallet(address));
-        logger.info(() -> "Balance of \'%s\': %s".formatted(address, txOutputs.total()));
+        logger.log(INFO, () -> "Balance of '%s': %s".formatted(address, txOutputs.total()));
     }
 
     /**
@@ -172,8 +175,8 @@ public class CLI {
         // 检查钱包地址是否合法
         Base58Check.decodeChecked(to);
         if (amount < 1) {
-            logger.severe("ERROR: amount invalid ! amount=%s".formatted(amount));
-            throw new RuntimeException("ERROR: amount invalid ! amount=" + amount);
+            logger.log(ERROR, "amount invalid ! amount=%s".formatted(amount));
+            throw new RuntimeException("amount invalid ! amount=" + amount);
         }
         var blockchain = Blockchain.createBlockchain(from);
         // 新交易
@@ -181,21 +184,21 @@ public class CLI {
         // 奖励
         var rewardTx = Transaction.newCoinbaseTX(from, "");
         var newBlock = blockchain.mineBlock(new Transaction[]{transaction, rewardTx}).orElseThrow();
-        logger.info("Success!");
+        logger.log(INFO, "Success!");
     }
 
     /**
      * 打印帮助信息
      */
     private void help() {
-        System.out.println("Usage:");
-        System.out.println("  createwallet - Generates a new key-pair and saves it into the wallet file");
-        System.out.println("  printaddresses - print all wallet address");
-        System.out.println("  getbalance -address ADDRESS - Get balance of ADDRESS");
-        System.out.println("  createblockchain -address ADDRESS - Create a blockchain and send genesis block reward to ADDRESS");
-        System.out.println("  printchain - Print all the blocks of the blockchain");
-        System.out.println("  send -from FROM -to TO -amount AMOUNT - Send AMOUNT of coins from FROM address to TO");
-        System.exit(0);
+        out.println("Usage:");
+        out.println("  createwallet - Generates a new key-pair and saves it into the wallet file");
+        out.println("  printaddresses - print all wallet address");
+        out.println("  getbalance -address ADDRESS - Get balance of ADDRESS");
+        out.println("  createblockchain -address ADDRESS - Create a blockchain and send genesis block reward to ADDRESS");
+        out.println("  printchain - Print all the blocks of the blockchain");
+        out.println("  send -from FROM -to TO -amount AMOUNT - Send AMOUNT of coins from FROM address to TO");
+        exit(0);
     }
 
     /**
@@ -204,7 +207,7 @@ public class CLI {
     private void printChain() {
         for (var block : Blockchain.initBlockchainFromDB()) {
             if (block != null) {
-                logger.info("%s, validate = %s".formatted(block, Pow.validate(block)));
+                logger.log(INFO, () -> "%s, validate = %s".formatted(block, Pow.validate(block)));
             }
         }
     }

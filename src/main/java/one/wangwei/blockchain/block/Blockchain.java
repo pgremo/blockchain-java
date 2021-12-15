@@ -8,8 +8,11 @@ import one.wangwei.blockchain.util.Bytes;
 
 import java.security.*;
 import java.util.*;
-import java.util.logging.Logger;
 import java.util.stream.StreamSupport;
+
+import static java.lang.System.Logger;
+import static java.lang.System.Logger.Level.ERROR;
+import static java.lang.System.getLogger;
 
 /**
  * <p> 区块链 </p>
@@ -19,7 +22,7 @@ import java.util.stream.StreamSupport;
  */
 public class Blockchain implements Iterable<Block> {
     @SuppressWarnings("all")
-    private static final Logger logger = Logger.getLogger(Blockchain.class.getName());
+    private static final Logger logger = getLogger(Blockchain.class.getName());
     private String lastBlockHash;
 
     /**
@@ -64,8 +67,8 @@ public class Blockchain implements Iterable<Block> {
     public Optional<Block> mineBlock(Transaction[] transactions) {
         // 挖矿前，先验证交易记录
         for (var tx : transactions) {
-            if (!this.verifyTransactions(tx)) {
-                logger.severe(() -> "ERROR: Fail to mine block ! Invalid transaction ! tx=%s".formatted(tx));
+            if (!verifyTransactions(tx)) {
+                logger.log(ERROR, () -> "ERROR: Fail to mine block ! Invalid transaction ! tx=%s".formatted(tx));
                 throw new RuntimeException("ERROR: Fail to mine block ! Invalid transaction ! ");
             }
         }

@@ -9,12 +9,10 @@ import javax.crypto.CipherOutputStream;
 import javax.crypto.SealedObject;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.logging.Logger;
 
+import static java.lang.System.Logger.Level.ERROR;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.logging.Level.SEVERE;
 import static javax.crypto.Cipher.DECRYPT_MODE;
 import static javax.crypto.Cipher.ENCRYPT_MODE;
 
@@ -25,7 +23,7 @@ import static javax.crypto.Cipher.ENCRYPT_MODE;
  * @date 2018/03/21
  */
 public class WalletUtils {
-    private static final Logger logger = Logger.getLogger(WalletUtils.class.getName());
+    private static final System.Logger logger = System.getLogger(WalletUtils.class.getName());
     /**
      * 钱包工具实例
      */
@@ -109,7 +107,7 @@ public class WalletUtils {
     private void saveToDisk(Wallets wallets) {
         try {
             if (wallets == null) {
-                logger.severe("Fail to save wallet to file ! wallets is null ");
+                logger.log(ERROR, "Fail to save wallet to file ! wallets is null ");
                 throw new Exception("ERROR: Fail to save wallet to file !");
             }
             var sks = new SecretKeySpec(CIPHER_TEXT, ALGORITHM);
@@ -119,7 +117,7 @@ public class WalletUtils {
                 SerializeUtils.serializeToStream(new SealedObject(wallets, cipher), outputStream);
             }
         } catch (Exception e) {
-            logger.log(SEVERE, "Fail to save wallet to disk !", e);
+            logger.log(ERROR, "Fail to save wallet to disk !", e);
             throw new RuntimeException("Fail to save wallet to disk !");
         }
     }
@@ -139,7 +137,7 @@ public class WalletUtils {
                 return Optional.of((Wallets) sealedObject.getObject(cipher));
             }
         } catch (Exception e) {
-            logger.log(SEVERE, "error loading wallets", e);
+            logger.log(ERROR, "error loading wallets", e);
             return Optional.empty();
         }
     }
@@ -182,12 +180,12 @@ public class WalletUtils {
             try {
                 Base58Check.decodeChecked(address);
             } catch (Exception e) {
-                logger.log(SEVERE, "Fail to get wallet ! address invalid ! address=" + address, e);
+                logger.log(ERROR, "Fail to get wallet ! address invalid ! address=" + address, e);
                 throw new RuntimeException("Fail to get wallet ! ");
             }
             var wallet = walletMap.get(address);
             if (wallet == null) {
-                logger.log(SEVERE, "Fail to get wallet ! wallet don`t exist ! address=" + address);
+                logger.log(ERROR, "Fail to get wallet ! wallet don`t exist ! address=" + address);
                 throw new RuntimeException("Fail to get wallet ! ");
             }
             return wallet;

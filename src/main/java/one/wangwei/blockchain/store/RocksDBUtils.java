@@ -6,8 +6,7 @@ import one.wangwei.blockchain.util.SerializeUtils;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import static java.lang.System.Logger.Level.ERROR;
 
 /**
  * 存储工具类
@@ -16,7 +15,7 @@ import java.util.logging.Logger;
  * @date 2018/02/27
  */
 public class RocksDBUtils {
-    private static final Logger logger = Logger.getLogger(RocksDBUtils.class.getName());
+    private static final System.Logger logger = System.getLogger(RocksDBUtils.class.getName());
     /**
      * 区块链数据文件
      */
@@ -47,7 +46,7 @@ public class RocksDBUtils {
         try {
             db = RocksDB.open(DB_FILE);
         } catch (RocksDBException e) {
-            logger.log(Level.SEVERE, "Fail to open db ! ", e);
+            logger.log(ERROR, "Fail to open db ! ", e);
             throw new RuntimeException("Fail to open db ! ", e);
         }
     }
@@ -61,7 +60,7 @@ public class RocksDBUtils {
         try {
             db.put(new byte[]{'l'}, SerializeUtils.serialize(tipBlockHash));
         } catch (RocksDBException e) {
-            logger.log(Level.SEVERE, "Fail to put last block hash ! tipBlockHash=" + tipBlockHash, e);
+            logger.log(ERROR, "Fail to put last block hash ! tipBlockHash=" + tipBlockHash, e);
             throw new RuntimeException("Fail to put last block hash ! tipBlockHash=" + tipBlockHash, e);
         }
     }
@@ -76,7 +75,7 @@ public class RocksDBUtils {
             byte[] bytes = db.get(new byte[]{'l'});
             return bytes == null ? "" : SerializeUtils.deserialize(bytes);
         } catch (RocksDBException e) {
-            logger.log(Level.SEVERE, "Fail to get last block hash !", e);
+            logger.log(ERROR, "Fail to get last block hash !", e);
             throw new RuntimeException("Fail to get last block hash !", e);
         }
     }
@@ -94,7 +93,7 @@ public class RocksDBUtils {
                 System.arraycopy(x, 0, key, 1, x.length);
                 db.put(key, SerializeUtils.serialize(block));
             } catch (RocksDBException e) {
-                logger.log(Level.SEVERE, "Fail to put block ! block=" + block, e);
+                logger.log(ERROR, "Fail to put block ! block=" + block, e);
                 throw new RuntimeException("Fail to put block ! block=" + block, e);
             }
         });
@@ -114,7 +113,7 @@ public class RocksDBUtils {
                 System.arraycopy(x, 0, key, 1, x.length);
                 return SerializeUtils.<Block>deserialize(db.get(key));
             } catch (RocksDBException e) {
-                logger.log(Level.SEVERE, "Fail to put block ! block=" + blockHash, e);
+                logger.log(ERROR, "Fail to put block ! block=" + blockHash, e);
                 throw new RuntimeException("Fail to put block ! block=" + blockHash, e);
             }
         }).orElseThrow();
@@ -127,7 +126,7 @@ public class RocksDBUtils {
         try {
             db.close();
         } catch (Exception e) {
-            logger.log(Level.SEVERE, "Fail to close db ! ", e);
+            logger.log(ERROR, "Fail to close db ! ", e);
             throw new RuntimeException("Fail to close db ! ", e);
         }
     }

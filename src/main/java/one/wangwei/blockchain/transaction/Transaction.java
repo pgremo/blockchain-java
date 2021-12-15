@@ -13,9 +13,8 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
 import java.util.*;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
+import static java.lang.System.Logger.Level.ERROR;
 import static java.util.stream.Collectors.toCollection;
 import static one.wangwei.blockchain.util.MerkleRoot.merkleRoot;
 
@@ -26,7 +25,7 @@ import static one.wangwei.blockchain.util.MerkleRoot.merkleRoot;
  * @date 2017/03/04
  */
 public class Transaction {
-    private static final Logger logger = Logger.getLogger(Transaction.class.getName());
+    private static final System.Logger logger = System.getLogger(Transaction.class.getName());
     private static final int SUBSIDY = 10;
     /**
      * 交易的Hash
@@ -274,7 +273,7 @@ public class Transaction {
             }
             return true;
         } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException | InvalidKeySpecException | NoSuchProviderException e) {
-            logger.log(Level.SEVERE, "Fail to verify transaction ! transaction invalid ! ", e);
+            logger.log(ERROR, "Fail to verify transaction ! transaction invalid ! ", e);
             return false;
         }
     }

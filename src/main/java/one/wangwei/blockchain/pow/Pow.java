@@ -20,12 +20,12 @@ import static java.util.stream.Collectors.toCollection;
 import static one.wangwei.blockchain.util.Hashes.sha256;
 import static one.wangwei.blockchain.util.MerkleRoot.merkleRoot;
 
-public class ProofOfWork {
-    private static final Logger logger = Logger.getLogger(ProofOfWork.class.getName());
+public class Pow {
+    private static final Logger logger = Logger.getLogger(Pow.class.getName());
     private static final int TARGET_BITS = 16;
     private static final BigInteger target = ONE.shiftLeft(256 - TARGET_BITS);
 
-    public Optional<PowResult> run(PoWRequest request) {
+    public Optional<PowResult> run(PowRequest request) {
         var start = now();
         return LongStream.range(0, Long.MAX_VALUE)
                 .peek(x -> logger.info(() -> "POW running, nonce=%s".formatted(x)))
@@ -39,11 +39,11 @@ public class ProofOfWork {
     }
 
     public static boolean validate(Block block) {
-        var request = new PoWRequest(block.previousHash(), block.transactions(), Instant.ofEpochMilli(block.timeStamp()));
+        var request = new PowRequest(block.previousHash(), block.transactions(), Instant.ofEpochMilli(block.timeStamp()));
         return new BigInteger(1, prepareData(request, block.nonce())).compareTo(target) < 0;
     }
 
-    private static byte[] prepareData(PoWRequest request, long nonce) {
+    private static byte[] prepareData(PowRequest request, long nonce) {
         var prevBlockHashBytes = request.previousHash().isBlank() ?
                 new byte[0] :
                 new BigInteger(request.previousHash(), 16).toByteArray();

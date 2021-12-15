@@ -1,14 +1,12 @@
 package one.wangwei.blockchain.block;
 
-import one.wangwei.blockchain.pow.PoWRequest;
-import one.wangwei.blockchain.pow.ProofOfWork;
+import one.wangwei.blockchain.pow.PowRequest;
+import one.wangwei.blockchain.pow.Pow;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.Bytes;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
 /**
@@ -40,8 +38,8 @@ public record Block(String hash, String previousHash, Transaction[] transactions
      */
     public static Optional<Block> newBlock(String previousHash, Transaction... transactions) {
         var now = Instant.now();
-        var request = new PoWRequest(previousHash, transactions, now);
-        var pow = new ProofOfWork();
+        var request = new PowRequest(previousHash, transactions, now);
+        var pow = new Pow();
         return pow.run(request).map(x -> new Block(
                 Bytes.byteArrayToHex(x.hash()),
                 previousHash,

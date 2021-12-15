@@ -20,6 +20,6 @@ public class ProofOfWorkTest {
         var data = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
         var tx = Transaction.newCoinbaseTX(wallet.getAddress(), data);
         var block = Block.newGenesisBlock(tx).orElseThrow();
-        Assert.assertTrue(ProofOfWork.validate(block));
+        Assert.assertTrue(Pow.validate(block));
     }
 }

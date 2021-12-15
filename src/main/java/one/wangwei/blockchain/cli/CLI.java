@@ -1,11 +1,9 @@
 package one.wangwei.blockchain.cli;
 
 import one.wangwei.blockchain.block.Blockchain;
-import one.wangwei.blockchain.pow.ProofOfWork;
+import one.wangwei.blockchain.pow.Pow;
 import one.wangwei.blockchain.store.RocksDBUtils;
-import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
-import one.wangwei.blockchain.transaction.UTXOSet;
 import one.wangwei.blockchain.util.Base58Check;
 import one.wangwei.blockchain.util.Numbers;
 import one.wangwei.blockchain.wallet.WalletUtils;
@@ -17,7 +15,6 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import java.io.IOException;
 import java.security.*;
-import java.util.Arrays;
 import java.util.logging.LogManager;
 import java.util.logging.Logger;
 
@@ -119,9 +116,7 @@ public class CLI {
      * @param address
      */
     private void createBlockchain(String address) {
-        var blockchain = Blockchain.createBlockchain(address);
-        var utxoSet = new UTXOSet(blockchain);
-        utxoSet.reIndex();
+        Blockchain.createBlockchain(address);
         logger.info("Done ! ");
     }
 
@@ -158,13 +153,9 @@ public class CLI {
         // 检查钱包地址是否合法
         Base58Check.decodeChecked(address);
         // 得到公钥Hash值
-        var versionedPayload = Base58Check.decodeChecked(address);
-        var pubKeyHash = Arrays.copyOfRange(versionedPayload, 1, versionedPayload.length);
         var blockchain = Blockchain.createBlockchain(address);
-        var utxoSet = new UTXOSet(blockchain);
-        var txOutputs = utxoSet.findUTXOs(pubKeyHash);
-        var balance = txOutputs.stream().mapToInt(TXOutput::value).sum();
-        logger.info(() -> "Balance of \'%s\': %s".formatted(address, balance));
+        var txOutputs = Transaction.getUnspent(Integer.MAX_VALUE, blockchain, WalletUtils.getInstance().getWallet(address));
+        logger.info(() -> "Balance of \'%s\': %s".formatted(address, txOutputs.total()));
     }
 
     /**
@@ -186,11 +177,10 @@ public class CLI {
         }
         var blockchain = Blockchain.createBlockchain(from);
         // 新交易
-        var transaction = Transaction.newUTXOTransaction(from, to, amount, blockchain);
+        var transaction = Transaction.create(from, to, amount, blockchain);
         // 奖励
         var rewardTx = Transaction.newCoinbaseTX(from, "");
         var newBlock = blockchain.mineBlock(new Transaction[]{transaction, rewardTx}).orElseThrow();
-        new UTXOSet(blockchain).update(newBlock);
         logger.info("Success!");
     }
 
@@ -214,7 +204,7 @@ public class CLI {
     private void printChain() {
         for (var block : Blockchain.initBlockchainFromDB()) {
             if (block != null) {
-                logger.info("%s, validate = %s".formatted(block, ProofOfWork.validate(block)));
+                logger.info("%s, validate = %s".formatted(block, Pow.validate(block)));
             }
         }
     }

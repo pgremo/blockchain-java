@@ -5,16 +5,14 @@ import one.wangwei.blockchain.util.BtcAddressUtils;
 import one.wangwei.blockchain.util.Bytes;
 import one.wangwei.blockchain.util.Hashes;
 import one.wangwei.blockchain.util.Numbers;
+import one.wangwei.blockchain.wallet.Wallet;
 import one.wangwei.blockchain.wallet.WalletUtils;
 
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -89,47 +87,91 @@ public class Transaction {
         return this.getInputs().length == 1 && this.getInputs()[0].getTxId().length == 0 && this.getInputs()[0].getTxOutputIndex() == -1;
     }
 
-    /**
-     * 从 from 向  to 支付一定的 amount 的金额
-     *
-     * @param from       支付钱包地址
-     * @param to         收款钱包地址
-     * @param amount     交易金额
-     * @param blockchain 区块链
-     * @return
-     */
-    public static Transaction newUTXOTransaction(String from, String to, int amount, Blockchain blockchain) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
-        // 获取钱包
-        var senderWallet = WalletUtils.getInstance().getWallet(from);
-        var pubKey = senderWallet.publicKey();
-        var pubKeyHash = BtcAddressUtils.ripeMD160Hash(pubKey);
-        var result = new UTXOSet(blockchain).findSpendableOutputs(pubKeyHash, amount);
-        var accumulated = result.accumulated();
-        var unspentOuts = result.unspentOuts();
-        if (accumulated < amount) {
-            logger.severe(() -> "ERROR: Not enough funds ! accumulated=%s, amount=%s".formatted(accumulated, amount));
-            throw new RuntimeException("ERROR: Not enough funds ! ");
+    record TxIoReference(byte[] txId, int index) {
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            TxIoReference that = (TxIoReference) o;
+            return index == that.index && Arrays.equals(txId, that.txId);
         }
-        var txInputs = new LinkedList<TXInput>();
-        for (var entry : unspentOuts.entrySet()) {
-            var txIdStr = entry.getKey();
-            var outIds = entry.getValue();
-            // TODO:  should just be byte[]'s all around
-            for (var outIndex : outIds) {
-                txInputs.add(new TXInput(txIdStr, outIndex, null, pubKey));
+
+        @Override
+        public int hashCode() {
+            int result = Objects.hash(index);
+            result = 31 * result + Arrays.hashCode(txId);
+            return result;
+        }
+    }
+
+    public static Transaction create(String from, String to, int amount, Blockchain chain) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException {
+        var fromWallet = WalletUtils.getInstance().getWallet(from);
+        var result = getUnspent(amount, chain, fromWallet);
+        if (result == null) throw new RuntimeException("insufficient funds");
+
+        var inputs = result.unspent().stream()
+                .map(x -> new TXInput(x.txId(), x.index(), null, fromWallet.publicKey()))
+                .toArray(TXInput[]::new);
+
+        var toWallet = WalletUtils.getInstance().getWallet(to);
+        var toPubKey = toWallet.publicKey();
+        var toPubKeyHash = BtcAddressUtils.ripeMD160Hash(toPubKey);
+        var first = new TXOutput(amount, toPubKeyHash);
+        var outputs = result.total() > amount ?
+                new TXOutput[]{first, new TXOutput(result.total() - amount, BtcAddressUtils.ripeMD160Hash(fromWallet.publicKey()))} :
+                new TXOutput[]{first};
+
+        var tx = new Transaction(null, inputs, outputs, Instant.now());
+        tx.setTxId(tx.hash());
+
+        chain.signTransaction(tx, fromWallet.privateKey());
+
+        return tx;
+    }
+
+    public static UnspentResult getUnspent(int amount, Blockchain chain, Wallet fromWallet) {
+        var fromPubKey = fromWallet.publicKey();
+        var fromPubKeyHash = BtcAddressUtils.ripeMD160Hash(fromPubKey);
+        var spent = new LinkedList<TxIoReference>();
+
+        var unspent = new LinkedList<TxIoReference>();
+        var total = 0;
+
+        processBlocks:
+        for (var block : chain) {
+            for (var transaction : block.transactions()) {
+                var outputs = transaction.getOutputs();
+                for (var index = 0; index < outputs.length; index++) {
+                    var output = outputs[index];
+
+                    // continue to the next output if this one is not of the sender
+                    if (!Arrays.equals(output.pubKeyHash(), fromPubKeyHash)) continue;
+
+                    var reference = new TxIoReference(transaction.getTxId(), index);
+
+                    // continue to the next output if this one is spent
+                    if (spent.remove(reference)) continue;
+
+                    // add valid to list of unspent
+                    unspent.add(reference);
+                    // update total
+                    total += output.value();
+                    // if we have enough then break all the way out
+                    if (total >= amount) {
+                        break processBlocks;
+                    }
+                }
+                // accumulate transaction inputs of sender
+                for (var input : transaction.getInputs()) {
+                    if (Arrays.equals(input.getPubKey(), fromPubKey)) {
+                        spent.add(new TxIoReference(input.getTxId(), input.getTxOutputIndex()));
+                    }
+                }
             }
         }
-        var txOutput = new LinkedList<TXOutput>();
-        txOutput.add(TXOutput.newTXOutput(amount, to));
-        if (accumulated > amount) {
-            txOutput.add(TXOutput.newTXOutput(accumulated - amount, from));
-        }
-        var newTx = new Transaction(null, txInputs.toArray(TXInput[]::new), txOutput.toArray(TXOutput[]::new), Instant.now());
-        newTx.setTxId(newTx.hash());
-        // 进行交易签名
-        blockchain.signTransaction(newTx, senderWallet.privateKey());
-        return newTx;
+        return new UnspentResult(total, unspent);
     }
+
 
     /**
      * 创建用于签名的交易数据副本，交易输入的 signature 和 pubKey 需要设置为null

@@ -14,6 +14,17 @@ import static java.lang.System.getLogger;
 
 public class Blockchain implements Iterable<Block> {
     private static final Logger logger = getLogger(Blockchain.class.getName());
+    private static final Iterator<Block> emptyIterator = new Iterator<>() {
+        @Override
+        public boolean hasNext() {
+            return false;
+        }
+
+        @Override
+        public Block next() {
+            throw new NoSuchElementException();
+        }
+    };
     private final RocksDbBlockRepository storage;
 
     public static Blockchain createBlockchain(RocksDbBlockRepository storage, String address) {
@@ -64,25 +75,15 @@ public class Blockchain implements Iterable<Block> {
         }
 
         public Block next() {
-            var currentBlock = storage.getBlock(currentBlockHash);
-            if (currentBlock == null) throw new NoSuchElementException();
-            currentBlockHash = currentBlock.previousHash();
-            return currentBlock;
+            var result = storage.getBlock(currentBlockHash)
+                    .orElseThrow(NoSuchElementException::new);
+            currentBlockHash = result.previousHash();
+            return result;
         }
     }
 
     public Iterator<Block> iterator() {
-        return storage.getLastBlockHash().map(x -> (Iterator<Block>) new BlockIterator(storage, x)).orElseGet(() -> new Iterator<>() {
-            @Override
-            public boolean hasNext() {
-                return false;
-            }
-
-            @Override
-            public Block next() {
-                throw new NoSuchElementException();
-            }
-        });
+        return storage.getLastBlockHash().map(x -> (Iterator<Block>) new BlockIterator(storage, x)).orElse(emptyIterator);
     }
 
     private Optional<Transaction> findTransaction(byte[] txId) {
@@ -113,33 +114,5 @@ public class Blockchain implements Iterable<Block> {
 
     public Optional<String> getLastBlockHash() {
         return storage.getLastBlockHash();
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        if (o == this) return true;
-        if (!(o instanceof final Blockchain other)) return false;
-        if (!other.canEqual(this)) return false;
-        final Object this$lastBlockHash = this.getLastBlockHash();
-        final Object other$lastBlockHash = other.getLastBlockHash();
-        return Objects.equals(this$lastBlockHash, other$lastBlockHash);
-    }
-
-    protected boolean canEqual(final Object other) {
-        return other instanceof Blockchain;
-    }
-
-    @Override
-    public int hashCode() {
-        final int PRIME = 59;
-        int result = 1;
-        final Object $lastBlockHash = this.getLastBlockHash();
-        result = result * PRIME + ($lastBlockHash == null ? 43 : $lastBlockHash.hashCode());
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return "Blockchain(lastBlockHash=" + this.getLastBlockHash() + ")";
     }
 }

@@ -19,12 +19,14 @@ public class RocksDbBlockRepository implements AutoCloseable {
     private final TransactionDB db;
 
     public RocksDbBlockRepository() throws RocksDBException {
-        db = TransactionDB.open(new Options(), new TransactionDBOptions(), DB_FILE);
+        Options options = new Options();
+        options.setCreateIfMissing(true);
+        db = TransactionDB.open(options, new TransactionDBOptions(), DB_FILE);
     }
 
     public Optional<String> getLastBlockHash() {
         try {
-            return doInTransaction(tx -> Optional.ofNullable(db.get(new byte[]{'l'})).map(Bytes::byteArrayToHex));
+            return doInTransaction(tx -> Optional.ofNullable(tx.get(new ReadOptions(), new byte[]{'l'})).map(Bytes::byteArrayToHex));
         } catch (RocksDBException e) {
             logger.log(ERROR, "Fail to get last block hash !", e);
             throw new RuntimeException("Fail to get last block hash !", e);
@@ -33,14 +35,13 @@ public class RocksDbBlockRepository implements AutoCloseable {
 
     public void appendBlock(Block block) {
         Bytes.hexToByteArray(block.hash()).ifPresent(x -> {
-            var transaction = db.beginTransaction(new WriteOptions());
             try {
                 doInTransaction(tx -> {
                     var key = new byte[x.length + 1];
                     key[0] = 'b';
                     arraycopy(x, 0, key, 1, x.length);
-                    transaction.put(key, SerializeUtils.serialize(block));
-                    transaction.put(new byte[]{'l'}, x);
+                    tx.put(key, SerializeUtils.serialize(block));
+                    tx.put(new byte[]{'l'}, x);
                     return true;
                 });
             } catch (RocksDBException e) {
@@ -57,7 +58,7 @@ public class RocksDbBlockRepository implements AutoCloseable {
                     var key = new byte[x.length + 1];
                     key[0] = 'b';
                     arraycopy(x, 0, key, 1, x.length);
-                    return Optional.ofNullable(db.get(key)).<Block>map(SerializeUtils::deserialize);
+                    return Optional.ofNullable(tx.get(new ReadOptions(), key)).<Block>map(SerializeUtils::deserialize);
                 });
             } catch (RocksDBException e) {
                 logger.log(ERROR, () -> "Fail to get block ! block=%s".formatted(blockHash), e);

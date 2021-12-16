@@ -109,15 +109,15 @@ public class Transaction {
         if (result == null) throw new RuntimeException("insufficient funds");
 
         var inputs = result.unspent().stream()
-                .map(x -> new TXInput(x.txId(), x.index(), null, fromWallet.publicKey()))
+                .map(x -> new TXInput(x.txId(), x.index(), null, fromWallet.publicKey().getEncoded()))
                 .toArray(TXInput[]::new);
 
         var toWallet = WalletUtils.getInstance().getWallet(to);
-        var toPubKey = toWallet.publicKey();
+        var toPubKey = toWallet.publicKey().getEncoded();
         var toPubKeyHash = BtcAddressUtils.ripeMD160Hash(toPubKey);
         var first = new TXOutput(amount, toPubKeyHash);
         var outputs = result.total() > amount ?
-                new TXOutput[]{first, new TXOutput(result.total() - amount, BtcAddressUtils.ripeMD160Hash(fromWallet.publicKey()))} :
+                new TXOutput[]{first, new TXOutput(result.total() - amount, BtcAddressUtils.ripeMD160Hash(fromWallet.publicKey().getEncoded()))} :
                 new TXOutput[]{first};
 
         var tx = new Transaction(null, inputs, outputs, Instant.now());
@@ -129,7 +129,7 @@ public class Transaction {
     }
 
     public static UnspentResult getUnspent(int amount, Blockchain chain, Wallet fromWallet) {
-        var fromPubKey = fromWallet.publicKey();
+        var fromPubKey = fromWallet.publicKey().getEncoded();
         var fromPubKeyHash = BtcAddressUtils.ripeMD160Hash(fromPubKey);
         var spent = new LinkedList<TxIoReference>();
 

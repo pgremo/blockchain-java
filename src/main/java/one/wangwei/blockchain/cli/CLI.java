@@ -84,7 +84,7 @@ public class CLI {
                 }
                 case "createwallet" -> this.createWallet();
                 case "printaddresses" -> this.printAddresses();
-                case "printchain" -> this.printChain();
+                case "printchain" -> this.printChain(storage);
                 default -> this.help();
             }
         }
@@ -155,8 +155,8 @@ public class CLI {
         exit(0);
     }
 
-    private void printChain() throws RocksDBException {
-        for (var block : new Blockchain(new RocksDbBlockRepository())) {
+    private void printChain(RocksDbBlockRepository storage) throws RocksDBException {
+        for (var block : new Blockchain(storage)) {
             logger.log(INFO, () -> "%s, validate = %s".formatted(block, Pow.validate(block)));
         }
     }

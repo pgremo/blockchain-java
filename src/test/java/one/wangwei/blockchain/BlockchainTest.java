@@ -2,11 +2,13 @@ package one.wangwei.blockchain;
 
 import one.wangwei.blockchain.block.Blockchain;
 import one.wangwei.blockchain.cli.CLI;
+import one.wangwei.blockchain.store.RocksDbBlockRepository;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.wallet.Wallet;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
 import org.junit.Test;
+import org.rocksdb.RocksDBException;
 
 import java.security.Security;
 
@@ -21,11 +23,11 @@ public class BlockchainTest {
     }
 
     @Test
-    public void shouldVerify(){
+    public void shouldVerify() throws RocksDBException {
         var wallet = Wallet.createWallet();
         var data = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
         var tx = Transaction.newCoinbaseTX(wallet.getAddress(), data);
-        Assert.assertTrue(Blockchain.initBlockchainFromDB().verifyTransactions(tx));
+        Assert.assertTrue(new Blockchain(new RocksDbBlockRepository()).verifyTransactions(tx));
     }
 
     public static void main(String[] args) {
@@ -37,8 +39,8 @@ public class BlockchainTest {
             // 1EKacQPNxTd8N7Y83VK11zoqm7bhUZiDHm
 //            var argss = new String[]{"printaddresses"};
 //            var argss = new String[]{"printchain"};
-            var argss = new String[]{"getbalance", "-address", "1G6iqBQZBmReUyWzQp8gpaz7QyLN394dpv"};
-//            var argss = new String[]{"send", "-from", "1G6iqBQZBmReUyWzQp8gpaz7QyLN394dpv", "-to", "1BT6He7eWTB7P1Eih1n75JZjw4QhpjpBQ3", "-amount", "5"};
+//            var argss = new String[]{"getbalance", "-address", "1G6iqBQZBmReUyWzQp8gpaz7QyLN394dpv"};
+            var argss = new String[]{"send", "-from", "1G6iqBQZBmReUyWzQp8gpaz7QyLN394dpv", "-to", "1BT6He7eWTB7P1Eih1n75JZjw4QhpjpBQ3", "-amount", "5"};
             new CLI(argss).parse();
         } catch (Exception e) {
             e.printStackTrace();

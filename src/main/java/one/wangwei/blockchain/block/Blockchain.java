@@ -33,7 +33,7 @@ public class Blockchain implements Iterable<Block> {
         if (last.isEmpty()) {
             var genesisCoinbaseData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
             var coinbaseTX = Transaction.newCoinbaseTX(address, genesisCoinbaseData);
-            var genesisBlock = one.wangwei.blockchain.block.Block.newGenesisBlock(coinbaseTX).orElseThrow();
+            var genesisBlock = Block.newGenesisBlock(coinbaseTX).orElseThrow();
             result.addBlock(genesisBlock);
         }
         return result;
@@ -43,7 +43,7 @@ public class Blockchain implements Iterable<Block> {
         this.storage = storage;
     }
 
-    public Optional<one.wangwei.blockchain.block.Block> mineBlock(Transaction[] transactions) {
+    public Optional<Block> mineBlock(Transaction[] transactions) {
         for (var tx : transactions) {
             if (!verifyTransactions(tx)) {
                 logger.log(ERROR, () -> "Fail to mine block ! Invalid transaction ! tx=%s".formatted(tx));
@@ -51,13 +51,13 @@ public class Blockchain implements Iterable<Block> {
             }
         }
         return storage.getLastBlockHash().flatMap(x -> {
-            var block = one.wangwei.blockchain.block.Block.newBlock(x, transactions);
+            var block = Block.newBlock(x, transactions);
             block.ifPresent(this::addBlock);
             return block;
         });
     }
 
-    private void addBlock(one.wangwei.blockchain.block.Block block) {
+    private void addBlock(Block block) {
         storage.appendBlock(block);
     }
 

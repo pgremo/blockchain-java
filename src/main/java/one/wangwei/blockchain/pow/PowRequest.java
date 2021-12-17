@@ -5,5 +5,5 @@ import one.wangwei.blockchain.transaction.Transaction;
 
 import java.time.Instant;
 
-public record PowRequest(BlockId previousHash, Transaction[] transactions, Instant stamp) {
+public record PowRequest(BlockId previousId, Transaction[] transactions, Instant stamp) {
 }

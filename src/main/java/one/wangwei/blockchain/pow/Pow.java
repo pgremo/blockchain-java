@@ -6,7 +6,6 @@ import one.wangwei.blockchain.util.Bytes;
 import one.wangwei.blockchain.util.Numbers;
 
 import java.math.BigInteger;
-import java.time.Instant;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.stream.LongStream;
@@ -44,10 +43,8 @@ public class Pow {
     }
 
     private static byte[] prepareData(PowRequest request, long nonce) {
-        var prevBlockHashBytes = new BigInteger(1, request.previousHash().value()).toByteArray();
-
         return sha256(
-                prevBlockHashBytes,
+                new BigInteger(1, request.previousId().value()).toByteArray(),
                 merkleRoot(stream(request.transactions()).map(Transaction::hash).collect(toCollection(LinkedList::new))),
                 Numbers.toBytes(request.stamp().toEpochMilli()),
                 Numbers.toBytes(TARGET_BITS),

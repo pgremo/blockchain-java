@@ -11,20 +11,11 @@ import java.util.stream.StreamSupport;
 import static java.lang.System.Logger;
 import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.getLogger;
+import static java.util.Collections.emptyIterator;
 
 public class Blockchain implements Iterable<Block> {
     private static final Logger logger = getLogger(Blockchain.class.getName());
-    private static final Iterator<Block> emptyIterator = new Iterator<>() {
-        @Override
-        public boolean hasNext() {
-            return false;
-        }
 
-        @Override
-        public Block next() {
-            throw new NoSuchElementException();
-        }
-    };
     private final RocksDbBlockRepository storage;
 
     public static Blockchain createBlockchain(RocksDbBlockRepository storage, String address) {
@@ -63,27 +54,27 @@ public class Blockchain implements Iterable<Block> {
 
     public static class BlockIterator implements Iterator<Block> {
         private final RocksDbBlockRepository storage;
-        private BlockId currentBlockHash;
+        private BlockId current;
 
         private BlockIterator(RocksDbBlockRepository storage, BlockId currentBlockHash) {
             this.storage = storage;
-            this.currentBlockHash = currentBlockHash;
+            this.current = currentBlockHash;
         }
 
         public boolean hasNext() {
-            return !currentBlockHash.equals(Block.NULL_ID);
+            return !current.equals(Block.NULL_ID);
         }
 
         public Block next() {
-            var result = storage.getBlock(currentBlockHash)
+            var result = storage.getBlock(current)
                     .orElseThrow(NoSuchElementException::new);
-            currentBlockHash = result.previousId();
+            current = result.previousId();
             return result;
         }
     }
 
     public Iterator<Block> iterator() {
-        return storage.getLastBlockId().map(x -> (Iterator<Block>) new BlockIterator(storage, x)).orElse(emptyIterator);
+        return storage.getLastBlockId().map(x -> (Iterator<Block>) new BlockIterator(storage, x)).orElse(emptyIterator());
     }
 
     private Optional<Transaction> findTransaction(byte[] txId) {

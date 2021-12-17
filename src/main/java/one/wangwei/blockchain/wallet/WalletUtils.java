@@ -133,7 +133,7 @@ public class WalletUtils {
             var cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(DECRYPT_MODE, sks);
             try (var inputStream = new CipherInputStream(new BufferedInputStream(new FileInputStream(WALLET_FILE)), cipher)) {
-                var sealedObject = SerializeUtils.<SealedObject>deserialize(inputStream);
+                var sealedObject = SerializeUtils.deserialize(inputStream, SealedObject.class);
                 return Optional.of((Wallets) sealedObject.getObject(cipher));
             }
         } catch (Exception e) {

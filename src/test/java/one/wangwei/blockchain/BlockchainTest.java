@@ -33,11 +33,11 @@ public class BlockchainTest {
     public static void main(String[] args) {
         try {
 //            var argss = new String[]{"createwallet"};
-//            var argss = new String[]{"createblockchain", "-address", "1JF8yqWfskPkBxp85MYvnVcohuQooJCtJH"};
+//            var argss = new String[]{"createblockchain", "-address", "1JCnyVZZZgPbhDM6bDn5LzgLcFQtAqEsZy"};
 //            var argss = new String[]{"printaddresses"};
             var argss = new String[]{"printchain"};
-//            var argss = new String[]{"getbalance", "-address", "1JF8yqWfskPkBxp85MYvnVcohuQooJCtJH"};
-//            var argss = new String[]{"send", "-from", "1JF8yqWfskPkBxp85MYvnVcohuQooJCtJH", "-to", "1ASdvSsQJ2Q1jqTRPwYg92Vc33aSLHe6ix", "-amount", "5"};
+//            var argss = new String[]{"getbalance", "-address", "1JCnyVZZZgPbhDM6bDn5LzgLcFQtAqEsZy"};
+//            var argss = new String[]{"send", "-from", "1JCnyVZZZgPbhDM6bDn5LzgLcFQtAqEsZy", "-to", "1LWdJqVcEat6GiLRWyfB9ewTjdqGPrfeug", "-amount", "5"};
             new CLI(argss).parse();
         } catch (Exception e) {
             e.printStackTrace();

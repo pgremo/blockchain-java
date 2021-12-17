@@ -21,78 +21,55 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.TreeMap;
 
-/**
- * 序列化工具类
- *
- * @author wangwei
- * @date 2018/02/07
- */
 public final class SerializeUtils {
 
     private static final Kryo kryo;
 
     static {
-        try {
-            kryo = new Kryo();
+        kryo = new Kryo();
 
-            kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
+        kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
 
-            final RecordSerializer<?> rs = new RecordSerializer<>();
-            rs.setFixedFieldTypes(true);
-            kryo.addDefaultSerializer(Record.class, rs);
+        final RecordSerializer<?> rs = new RecordSerializer<>();
+        rs.setFixedFieldTypes(true);
+        kryo.addDefaultSerializer(Record.class, rs);
 
-            kryo.register(ArrayList.class);
-            kryo.register(Block.class);
-            kryo.register(HashMap.class);
-            kryo.register(Instant.class);
-            kryo.register(List.class);
-            kryo.register(SealedObject.class, new JavaSerializer());
-            kryo.register(Transaction.class);
-            kryo.register(Transaction[].class);
-            kryo.register(TreeMap.class, new JavaSerializer());
-            kryo.register(TXInput.class);
-            kryo.register(TXInput[].class);
-            kryo.register(TXOutput.class);
-            kryo.register(TXOutput[].class);
-            kryo.register(byte[].class);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        }
+        kryo.register(ArrayList.class);
+        kryo.register(Block.class);
+        kryo.register(HashMap.class);
+        kryo.register(Instant.class);
+        kryo.register(List.class);
+        kryo.register(SealedObject.class, new JavaSerializer());
+        kryo.register(Transaction.class);
+        kryo.register(Transaction[].class);
+        kryo.register(TreeMap.class, new JavaSerializer());
+        kryo.register(TXInput.class);
+        kryo.register(TXInput[].class);
+        kryo.register(TXOutput.class);
+        kryo.register(TXOutput[].class);
+        kryo.register(byte[].class);
     }
 
-    /**
-     * 反序列化
-     *
-     * @param bytes 对象对应的字节数组
-     * @return
-     */
-    public static <T> T deserialize(byte[] bytes) {
+    public static <T> T deserialize(byte[] bytes, Class<T> type) {
         try (var input = new Input(bytes)) {
-            return (T) kryo.readClassAndObject(input);
+            return kryo.readObject(input, type);
         }
     }
 
-    public static <T> T deserialize(InputStream bytes) {
+    public static <T> T deserialize(InputStream bytes, Class<T> type) {
         try (var input = new Input(bytes)) {
-            return (T) kryo.readClassAndObject(input);
+            return kryo.readObject(input, type);
         }
     }
 
-    /**
-     * 序列化
-     *
-     * @param object 需要序列化的对象
-     * @return
-     */
     public static byte[] serialize(Object object) {
         try (var output = new Output(4096, -1)) {
-            kryo.writeClassAndObject(output, object);
+            kryo.writeObject(output, object);
             return output.toBytes();
         }
     }
 
     public static void serializeToStream(Object object, OutputStream out) {
-        kryo.writeClassAndObject(new Output(out), object);
+        kryo.writeObject(new Output(out), object);
     }
 }

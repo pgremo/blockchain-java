@@ -26,7 +26,7 @@ public class RocksDbBlockRepository implements AutoCloseable {
 
     public Optional<String> getLastBlockHash() {
         try {
-            return doInTransaction(tx -> Optional.ofNullable(tx.get(new ReadOptions(), new byte[]{'l'})).map(Bytes::byteArrayToHex));
+            return withTransaction(tx -> Optional.ofNullable(tx.get(new ReadOptions(), new byte[]{'l'})).map(Bytes::byteArrayToHex));
         } catch (RocksDBException e) {
             logger.log(ERROR, "Fail to get last block hash !", e);
             throw new RuntimeException("Fail to get last block hash !", e);
@@ -36,7 +36,7 @@ public class RocksDbBlockRepository implements AutoCloseable {
     public void appendBlock(Block block) {
         Bytes.hexToByteArray(block.hash()).ifPresent(x -> {
             try {
-                doInTransaction(tx -> {
+                withTransaction(tx -> {
                     var key = new byte[x.length + 1];
                     key[0] = 'b';
                     arraycopy(x, 0, key, 1, x.length);
@@ -52,13 +52,13 @@ public class RocksDbBlockRepository implements AutoCloseable {
     }
 
     public Optional<Block> getBlock(String blockHash) {
-        return Bytes.hexToByteArray(blockHash).map(x -> {
+        return Bytes.hexToByteArray(blockHash).map(id -> {
             try {
-                return doInTransaction(tx -> {
-                    var key = new byte[x.length + 1];
+                return withTransaction(tx -> {
+                    var key = new byte[id.length + 1];
                     key[0] = 'b';
-                    arraycopy(x, 0, key, 1, x.length);
-                    return Optional.ofNullable(tx.get(new ReadOptions(), key)).<Block>map(SerializeUtils::deserialize);
+                    arraycopy(id, 0, key, 1, id.length);
+                    return Optional.ofNullable(tx.get(new ReadOptions(), key)).map(data -> SerializeUtils.deserialize(data, Block.class));
                 });
             } catch (RocksDBException e) {
                 logger.log(ERROR, () -> "Fail to get block ! block=%s".formatted(blockHash), e);
@@ -68,11 +68,11 @@ public class RocksDbBlockRepository implements AutoCloseable {
     }
 
     @FunctionalInterface
-    interface Command<T> {
+    interface TransactionalCommand<T> {
         T apply(Transaction tx) throws RocksDBException;
     }
 
-    private <T> T doInTransaction(Command<T> command) throws RocksDBException {
+    private <T> T withTransaction(TransactionalCommand<T> command) throws RocksDBException {
         var transaction = db.beginTransaction(new WriteOptions());
         T result;
         try {

@@ -50,7 +50,7 @@ public class Blockchain implements Iterable<Block> {
                 throw new RuntimeException("Fail to mine block ! Invalid transaction ! ");
             }
         }
-        return storage.getLastBlockHash().flatMap(x -> {
+        return storage.getLastBlockId().flatMap(x -> {
             var block = Block.newBlock(x, transactions);
             block.ifPresent(this::addBlock);
             return block;
@@ -63,27 +63,27 @@ public class Blockchain implements Iterable<Block> {
 
     public static class BlockIterator implements Iterator<Block> {
         private final RocksDbBlockRepository storage;
-        private String currentBlockHash;
+        private BlockId currentBlockHash;
 
-        private BlockIterator(RocksDbBlockRepository storage, String currentBlockHash) {
+        private BlockIterator(RocksDbBlockRepository storage, BlockId currentBlockHash) {
             this.storage = storage;
             this.currentBlockHash = currentBlockHash;
         }
 
         public boolean hasNext() {
-            return !currentBlockHash.equals(Block.ZERO_HASH);
+            return !currentBlockHash.equals(Block.NULL_ID);
         }
 
         public Block next() {
             var result = storage.getBlock(currentBlockHash)
                     .orElseThrow(NoSuchElementException::new);
-            currentBlockHash = result.previousHash();
+            currentBlockHash = result.previousId();
             return result;
         }
     }
 
     public Iterator<Block> iterator() {
-        return storage.getLastBlockHash().map(x -> (Iterator<Block>) new BlockIterator(storage, x)).orElse(emptyIterator);
+        return storage.getLastBlockId().map(x -> (Iterator<Block>) new BlockIterator(storage, x)).orElse(emptyIterator);
     }
 
     private Optional<Transaction> findTransaction(byte[] txId) {
@@ -112,7 +112,7 @@ public class Blockchain implements Iterable<Block> {
         return tx.verify(prevTx);
     }
 
-    public Optional<String> getLastBlockHash() {
-        return storage.getLastBlockHash();
+    public Optional<BlockId> getLastBlockHash() {
+        return storage.getLastBlockId();
     }
 }

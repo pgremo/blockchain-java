@@ -7,6 +7,7 @@ import com.esotericsoftware.kryo.serializers.JavaSerializer;
 import com.esotericsoftware.kryo.serializers.RecordSerializer;
 import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy;
 import one.wangwei.blockchain.block.Block;
+import one.wangwei.blockchain.block.BlockId;
 import one.wangwei.blockchain.transaction.TXInput;
 import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
@@ -36,6 +37,7 @@ public final class SerializeUtils {
 
         kryo.register(ArrayList.class);
         kryo.register(Block.class);
+        kryo.register(BlockId.class);
         kryo.register(HashMap.class);
         kryo.register(Instant.class);
         kryo.register(List.class);

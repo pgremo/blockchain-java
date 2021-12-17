@@ -15,9 +15,9 @@ import java.util.Optional;
  * @author wangwei
  * @date 2018/02/02
  */
-public record Block(String hash, String previousHash, Transaction[] transactions, long timeStamp, long nonce) {
+public record Block(BlockId id, BlockId previousId, Transaction[] transactions, long timeStamp, long nonce) {
 
-    public static final String ZERO_HASH = Bytes.byteArrayToHex(Bytes.EMPTY_BYTES);
+    public static final BlockId NULL_ID = new BlockId(Bytes.EMPTY_BYTES);
 
     /**
      * <p> 创建创世区块 </p>
@@ -26,7 +26,7 @@ public record Block(String hash, String previousHash, Transaction[] transactions
      * @return
      */
     public static Optional<Block> newGenesisBlock(Transaction coinbase) {
-        return Block.newBlock(ZERO_HASH, coinbase);
+        return Block.newBlock(NULL_ID, coinbase);
     }
 
     /**
@@ -36,12 +36,12 @@ public record Block(String hash, String previousHash, Transaction[] transactions
      * @param transactions
      * @return
      */
-    public static Optional<Block> newBlock(String previousHash, Transaction... transactions) {
+    public static Optional<Block> newBlock(BlockId previousHash, Transaction... transactions) {
         var now = Instant.now();
         var request = new PowRequest(previousHash, transactions, now);
         var pow = new Pow();
         return pow.run(request).map(x -> new Block(
-                Bytes.byteArrayToHex(x.hash()),
+                new BlockId(x.hash()),
                 previousHash,
                 transactions,
                 now.toEpochMilli(),
@@ -52,8 +52,8 @@ public record Block(String hash, String previousHash, Transaction[] transactions
     @Override
     public String toString() {
         return "Block[" +
-                "hash=" + hash +
-                ", previousHash=" + previousHash +
+                "id=" + id +
+                ", previousId=" + previousId +
                 ", transactions=" + Arrays.toString(transactions) +
                 ", timeStamp=" + timeStamp +
                 ", nonce=" + nonce +

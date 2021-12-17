@@ -39,14 +39,12 @@ public class Pow {
     }
 
     public static boolean validate(Block block) {
-        var request = new PowRequest(block.previousHash(), block.transactions(), Instant.ofEpochMilli(block.timeStamp()));
+        var request = new PowRequest(block.previousId(), block.transactions(), Instant.ofEpochMilli(block.timeStamp()));
         return new BigInteger(1, prepareData(request, block.nonce())).compareTo(target) < 0;
     }
 
     private static byte[] prepareData(PowRequest request, long nonce) {
-        var prevBlockHashBytes = request.previousHash().isBlank() ?
-                new byte[0] :
-                new BigInteger(request.previousHash(), 16).toByteArray();
+        var prevBlockHashBytes = new BigInteger(1, request.previousHash().value()).toByteArray();
 
         return sha256(
                 prevBlockHashBytes,

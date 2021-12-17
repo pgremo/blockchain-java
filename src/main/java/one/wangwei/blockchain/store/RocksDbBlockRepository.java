@@ -1,7 +1,7 @@
 package one.wangwei.blockchain.store;
 
 import one.wangwei.blockchain.block.Block;
-import one.wangwei.blockchain.util.Bytes;
+import one.wangwei.blockchain.block.BlockId;
 import one.wangwei.blockchain.util.SerializeUtils;
 import org.rocksdb.*;
 
@@ -24,47 +24,45 @@ public class RocksDbBlockRepository implements AutoCloseable {
         db = TransactionDB.open(options, new TransactionDBOptions(), DB_FILE);
     }
 
-    public Optional<String> getLastBlockHash() {
+    public Optional<BlockId> getLastBlockId() {
         try {
-            return withTransaction(tx -> Optional.ofNullable(tx.get(new ReadOptions(), new byte[]{'l'})).map(Bytes::byteArrayToHex));
+            return withTransaction(tx -> Optional.ofNullable(tx.get(new ReadOptions(), new byte[]{'l'})).map(BlockId::new));
         } catch (RocksDBException e) {
-            logger.log(ERROR, "Fail to get last block hash !", e);
-            throw new RuntimeException("Fail to get last block hash !", e);
+            logger.log(ERROR, "Fail to get last block id !", e);
+            throw new RuntimeException("Fail to get last block id !", e);
         }
     }
 
     public void appendBlock(Block block) {
-        Bytes.hexToByteArray(block.hash()).ifPresent(x -> {
-            try {
-                withTransaction(tx -> {
-                    var key = new byte[x.length + 1];
-                    key[0] = 'b';
-                    arraycopy(x, 0, key, 1, x.length);
-                    tx.put(key, SerializeUtils.serialize(block));
-                    tx.put(new byte[]{'l'}, x);
-                    return true;
-                });
-            } catch (RocksDBException e) {
-                logger.log(ERROR, () -> "Fail to put block ! block=%s".formatted(block), e);
-                throw new RuntimeException("Fail to put block ! block=" + block, e);
-            }
-        });
+        var x = block.id().value();
+        try {
+            withTransaction(tx -> {
+                var key = new byte[x.length + 1];
+                key[0] = 'b';
+                arraycopy(x, 0, key, 1, x.length);
+                tx.put(key, SerializeUtils.serialize(block));
+                tx.put(new byte[]{'l'}, x);
+                return true;
+            });
+        } catch (RocksDBException e) {
+            logger.log(ERROR, () -> "Fail to put block ! block=%s".formatted(block), e);
+            throw new RuntimeException("Fail to put block ! block=" + block, e);
+        }
     }
 
-    public Optional<Block> getBlock(String blockHash) {
-        return Bytes.hexToByteArray(blockHash).map(id -> {
-            try {
-                return withTransaction(tx -> {
-                    var key = new byte[id.length + 1];
-                    key[0] = 'b';
-                    arraycopy(id, 0, key, 1, id.length);
-                    return Optional.ofNullable(tx.get(new ReadOptions(), key)).map(data -> SerializeUtils.deserialize(data, Block.class));
-                });
-            } catch (RocksDBException e) {
-                logger.log(ERROR, () -> "Fail to get block ! block=%s".formatted(blockHash), e);
-                throw new RuntimeException("Fail to get block ! block=" + blockHash, e);
-            }
-        }).orElseThrow();
+    public Optional<Block> getBlock(BlockId id) {
+        var raw = id.value();
+        try {
+            return withTransaction(tx -> {
+                var key = new byte[raw.length + 1];
+                key[0] = 'b';
+                arraycopy(raw, 0, key, 1, raw.length);
+                return Optional.ofNullable(tx.get(new ReadOptions(), key)).map(data -> SerializeUtils.deserialize(data, Block.class));
+            });
+        } catch (RocksDBException e) {
+            logger.log(ERROR, () -> "Fail to get block ! block=%s".formatted(id), e);
+            throw new RuntimeException("Fail to get block ! block=" + id, e);
+        }
     }
 
     @FunctionalInterface

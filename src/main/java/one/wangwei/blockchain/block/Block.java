@@ -15,7 +15,7 @@ import java.util.Optional;
  * @author wangwei
  * @date 2018/02/02
  */
-public record Block(BlockId id, BlockId previousId, Transaction[] transactions, long timeStamp, long nonce) {
+public record Block(BlockId id, BlockId previousId, Transaction[] transactions, Instant timeStamp, long nonce) {
 
     public static final BlockId NULL_ID = new BlockId(Bytes.EMPTY_BYTES);
 
@@ -44,7 +44,7 @@ public record Block(BlockId id, BlockId previousId, Transaction[] transactions, 
                 new BlockId(x.hash()),
                 previousHash,
                 transactions,
-                now.toEpochMilli(),
+                now,
                 x.nonce()
         ));
     }

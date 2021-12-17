@@ -39,7 +39,7 @@ public class Pow {
     }
 
     public static boolean validate(Block block) {
-        var request = new PowRequest(block.previousId(), block.transactions(), Instant.ofEpochMilli(block.timeStamp()));
+        var request = new PowRequest(block.previousId(), block.transactions(), block.timeStamp());
         return new BigInteger(1, prepareData(request, block.nonce())).compareTo(target) < 0;
     }
 

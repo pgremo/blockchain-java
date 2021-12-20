@@ -33,7 +33,7 @@ public class TXInput {
     /**
      * 交易Id的hash值
      */
-    public byte[] getTxId() {
+    public byte[] getId() {
         return this.txId;
     }
 
@@ -83,7 +83,7 @@ public class TXInput {
         final TXInput other = (TXInput) o;
         if (!other.canEqual((Object) this)) return false;
         if (this.getTxOutputIndex() != other.getTxOutputIndex()) return false;
-        if (!Arrays.equals(this.getTxId(), other.getTxId())) return false;
+        if (!Arrays.equals(this.getId(), other.getId())) return false;
         if (!Arrays.equals(this.getSignature(), other.getSignature())) return false;
         if (!Arrays.equals(this.getPubKey(), other.getPubKey())) return false;
         return true;
@@ -98,7 +98,7 @@ public class TXInput {
         final int PRIME = 59;
         int result = 1;
         result = result * PRIME + this.getTxOutputIndex();
-        result = result * PRIME + Arrays.hashCode(this.getTxId());
+        result = result * PRIME + Arrays.hashCode(this.getId());
         result = result * PRIME + Arrays.hashCode(this.getSignature());
         result = result * PRIME + Arrays.hashCode(this.getPubKey());
         return result;
@@ -106,7 +106,7 @@ public class TXInput {
 
     @Override
     public String toString() {
-        return "TXInput[txId=" + Bytes.byteArrayToHex(this.getTxId()) + ", txOutputIndex=" + this.getTxOutputIndex() + ", signature=" + Bytes.byteArrayToHex(this.getSignature()) + ", pubKey=" + Bytes.byteArrayToHex(this.getPubKey()) + "]";
+        return "TXInput[txId=" + Bytes.byteArrayToHex(this.getId()) + ", txOutputIndex=" + this.getTxOutputIndex() + ", signature=" + Bytes.byteArrayToHex(this.getSignature()) + ", pubKey=" + Bytes.byteArrayToHex(this.getPubKey()) + "]";
     }
 
     public TXInput(final byte[] txId, final int txOutputIndex, final byte[] signature, final byte[] pubKey) {

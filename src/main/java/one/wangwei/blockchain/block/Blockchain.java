@@ -6,12 +6,15 @@ import one.wangwei.blockchain.transaction.Transaction;
 
 import java.security.*;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import static java.lang.System.Logger;
 import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.getLogger;
 import static java.util.Collections.emptyIterator;
+import static java.util.stream.Collectors.toMap;
 
 public class Blockchain implements Iterable<Block> {
     private static final Logger logger = getLogger(Blockchain.class.getName());
@@ -22,10 +25,10 @@ public class Blockchain implements Iterable<Block> {
         var result = new Blockchain(storage);
         var last = result.getLastBlockHash();
         if (last.isEmpty()) {
-            var genesisCoinbaseData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
-            var coinbaseTX = Transaction.newCoinbaseTX(address, genesisCoinbaseData);
-            var genesisBlock = Block.newGenesisBlock(coinbaseTX).orElseThrow();
-            result.addBlock(genesisBlock);
+            var baseData = "G4ZD3A4Ya!tFz6vkqFC8D@eDPXK2sLGT8tPqbeTKbzmC6e.sYy@RsmMm-_MytkACCwxFj";
+            var tx = Transaction.newCoinbaseTX(address, baseData);
+            var block = Block.newGenesisBlock(tx).orElseThrow();
+            result.addBlock(block);
         }
         return result;
     }
@@ -62,7 +65,7 @@ public class Blockchain implements Iterable<Block> {
         }
 
         public boolean hasNext() {
-            return !current.equals(Block.NULL_ID);
+            return !current.equals(BlockId.Null);
         }
 
         public Block next() {
@@ -77,29 +80,43 @@ public class Blockchain implements Iterable<Block> {
         return storage.getLastBlockId().map(x -> (Iterator<Block>) new BlockIterator(storage, x)).orElse(emptyIterator());
     }
 
+    public Stream<Block> stream() {
+        return StreamSupport.stream(spliterator(), false);
+    }
+
     private Optional<Transaction> findTransaction(byte[] txId) {
-        return StreamSupport.stream(spliterator(), false)
+        return stream()
                 .flatMap(x -> Arrays.stream(x.transactions()))
                 .filter(x -> Arrays.equals(x.getTxId(), txId))
                 .findFirst();
     }
 
     public void signTransaction(Transaction tx, PrivateKey privateKey) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
-        var prevTx = new TreeMap<byte[], Transaction>(Arrays::compare);
-        for (TXInput txInput : tx.getInputs()) {
-            byte[] id = txInput.getTxId();
-            findTransaction(id).ifPresent(transaction -> prevTx.putIfAbsent(id, transaction));
-        }
+        var prevTx = Arrays.stream(tx.getInputs())
+                .map(TXInput::getId)
+                .map(this::findTransaction)
+                .flatMap(Optional::stream)
+                .collect(toMap(
+                        Transaction::getTxId,
+                        Function.identity(),
+                        (a, b) -> a,
+                        () -> new TreeMap<byte[], Transaction>(Arrays::compare)
+                ));
         tx.sign(privateKey, prevTx);
     }
 
     public boolean verifyTransactions(Transaction tx) {
         if (tx.isCoinbase()) return true;
-        var prevTx = new TreeMap<byte[], Transaction>(Arrays::compare);
-        for (TXInput txInput : tx.getInputs()) {
-            byte[] id = txInput.getTxId();
-            findTransaction(id).ifPresent(transaction -> prevTx.putIfAbsent(id, transaction));
-        }
+        var prevTx = Arrays.stream(tx.getInputs())
+                .map(TXInput::getId)
+                .map(this::findTransaction)
+                .flatMap(Optional::stream)
+                .collect(toMap(
+                        Transaction::getTxId,
+                        Function.identity(),
+                        (a, b) -> a,
+                        () -> new TreeMap<byte[], Transaction>(Arrays::compare)
+                ));
         return tx.verify(prevTx);
     }
 

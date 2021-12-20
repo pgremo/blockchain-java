@@ -5,6 +5,8 @@ import one.wangwei.blockchain.util.Bytes;
 import java.util.Arrays;
 
 public record BlockId(byte[] value) {
+    public static final BlockId Null = new BlockId(new byte[32]);
+
     @Override
     public String toString() {
         return "BlockId[" +

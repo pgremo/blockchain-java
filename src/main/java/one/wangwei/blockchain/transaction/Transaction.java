@@ -83,7 +83,7 @@ public class Transaction {
      * @return
      */
     public boolean isCoinbase() {
-        return this.getInputs().length == 1 && this.getInputs()[0].getTxId().length == 0 && this.getInputs()[0].getTxOutputIndex() == -1;
+        return getInputs().length == 1 && getInputs()[0].getId().length == 0 && getInputs()[0].getTxOutputIndex() == -1;
     }
 
     record TxIoReference(byte[] txId, int index) {
@@ -106,7 +106,7 @@ public class Transaction {
     public static Transaction create(String from, String to, int amount, Blockchain chain) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException {
         var fromWallet = WalletUtils.getInstance().getWallet(from);
         var result = getUnspent(amount, chain, fromWallet);
-        if (result == null) throw new RuntimeException("insufficient funds");
+        if (result.total() < amount) throw new RuntimeException("insufficient funds");
 
         var inputs = result.unspent().stream()
                 .map(x -> new TXInput(x.txId(), x.index(), null, fromWallet.publicKey().getEncoded()))
@@ -163,7 +163,7 @@ public class Transaction {
                 // accumulate transaction inputs of sender
                 for (var input : transaction.getInputs()) {
                     if (Arrays.equals(input.getPubKey(), fromPubKey)) {
-                        spent.add(new TxIoReference(input.getTxId(), input.getTxOutputIndex()));
+                        spent.add(new TxIoReference(input.getId(), input.getTxOutputIndex()));
                     }
                 }
             }
@@ -181,7 +181,7 @@ public class Transaction {
         var tmpTXInputs = new TXInput[this.getInputs().length];
         for (var i = 0; i < this.getInputs().length; i++) {
             var txInput = this.getInputs()[i];
-            tmpTXInputs[i] = new TXInput(txInput.getTxId(), txInput.getTxOutputIndex(), null, null);
+            tmpTXInputs[i] = new TXInput(txInput.getId(), txInput.getTxOutputIndex(), null, null);
         }
         var tmpTXOutputs = new TXOutput[this.getOutputs().length];
         for (var i = 0; i < this.getOutputs().length; i++) {
@@ -204,7 +204,7 @@ public class Transaction {
         }
         // 再次验证一下交易信息中的交易输入是否正确，也就是能否查找对应的交易数据
         for (var txInput : this.getInputs()) {
-            if (!prevTxMap.containsKey(txInput.getTxId()))
+            if (!prevTxMap.containsKey(txInput.getId()))
                 throw new RuntimeException("ERROR: Previous transaction is not correct");
         }
         // 创建用于签名的交易信息的副本
@@ -214,7 +214,7 @@ public class Transaction {
         for (var i = 0; i < txCopy.getInputs().length; i++) {
             var txInputCopy = txCopy.getInputs()[i];
             // 获取交易输入TxID对应的交易数据
-            var prevTx = prevTxMap.get(txInputCopy.getTxId());
+            var prevTx = prevTxMap.get(txInputCopy.getId());
             // 获取交易输入所对应的上一笔交易中的交易输出
             var prevTxOutput = prevTx.getOutputs()[txInputCopy.getTxOutputIndex()];
             txInputCopy.setPubKey(prevTxOutput.pubKeyHash());
@@ -244,7 +244,7 @@ public class Transaction {
         }
         // 再次验证一下交易信息中的交易输入是否正确，也就是能否查找对应的交易数据
         for (var txInput : this.getInputs()) {
-            if (!prevTxMap.containsKey(txInput.getTxId()))
+            if (!prevTxMap.containsKey(txInput.getId()))
                 throw new RuntimeException("ERROR: Previous transaction is not correct");
         }
         // 创建用于签名验证的交易信息的副本
@@ -255,7 +255,7 @@ public class Transaction {
             for (var i = 0; i < this.getInputs().length; i++) {
                 var txInput = this.getInputs()[i];
                 // 获取交易输入TxID对应的交易数据
-                var prevTx = prevTxMap.get(txInput.getTxId());
+                var prevTx = prevTxMap.get(txInput.getId());
                 // 获取交易输入所对应的上一笔交易中的交易输出
                 var prevTxOutput = prevTx.getOutputs()[txInput.getTxOutputIndex()];
                 var txInputCopy = txCopy.getInputs()[i];

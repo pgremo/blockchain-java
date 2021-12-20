@@ -157,7 +157,7 @@ public class CLI {
 
     private void printChain(RocksDbBlockRepository storage) throws RocksDBException {
         for (var block : new Blockchain(storage)) {
-            logger.log(INFO, () -> "%s, validate = %s".formatted(block, Pow.validate(block)));
+            logger.log(INFO, () -> "%s, valid = %s".formatted(block, Pow.validate(block)));
         }
     }
 }

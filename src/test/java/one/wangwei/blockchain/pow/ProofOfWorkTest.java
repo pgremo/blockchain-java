@@ -7,6 +7,9 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.security.InvalidAlgorithmParameterException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.security.Security;
 
 public class ProofOfWorkTest {
@@ -15,7 +18,7 @@ public class ProofOfWorkTest {
     }
 
     @Test
-    public void shouldMatch() {
+    public void shouldMatch() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
         var wallet = Wallet.createWallet();
         var data = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
         var tx = Transaction.newCoinbaseTX(wallet.getAddress(), data);

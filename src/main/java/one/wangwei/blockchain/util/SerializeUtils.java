@@ -11,6 +11,7 @@ import one.wangwei.blockchain.block.BlockId;
 import one.wangwei.blockchain.transaction.TXInput;
 import one.wangwei.blockchain.transaction.TXOutput;
 import one.wangwei.blockchain.transaction.Transaction;
+import one.wangwei.blockchain.transaction.TransactionId;
 import org.objenesis.strategy.StdInstantiatorStrategy;
 
 import javax.crypto.SealedObject;
@@ -44,6 +45,7 @@ public final class SerializeUtils {
         kryo.register(SealedObject.class, new JavaSerializer());
         kryo.register(Transaction.class);
         kryo.register(Transaction[].class);
+        kryo.register(TransactionId.class);
         kryo.register(TreeMap.class, new JavaSerializer());
         kryo.register(TXInput.class);
         kryo.register(TXInput[].class);

@@ -4,7 +4,6 @@ import java.io.Serializable;
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
 
-import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.arraycopy;
 import static one.wangwei.blockchain.util.Base58Check.encode;
 import static one.wangwei.blockchain.util.BtcAddressUtils.checksum;
@@ -14,14 +13,9 @@ import static one.wangwei.blockchain.util.BtcAddressUtils.ripeMD160Hash;
 public record Wallet(PrivateKey privateKey, PublicKey publicKey) implements Serializable {
     private static final System.Logger logger = System.getLogger(Wallet.class.getName());
 
-    public static Wallet createWallet() {
-        try {
-            var keyPair = newECKeyPair();
-            return new Wallet(keyPair.getPrivate(), keyPair.getPublic());
-        } catch (Exception e) {
-            logger.log(ERROR, "Fail to init wallet ! ", e);
-            throw new RuntimeException("Fail to init wallet ! ", e);
-        }
+    public static Wallet createWallet() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
+        var keyPair = newECKeyPair();
+        return new Wallet(keyPair.getPrivate(), keyPair.getPublic());
     }
 
     private static KeyPair newECKeyPair() throws NoSuchAlgorithmException, InvalidAlgorithmParameterException, NoSuchProviderException {

@@ -2,7 +2,6 @@ package one.wangwei.blockchain.transaction;
 
 import one.wangwei.blockchain.block.Blockchain;
 import one.wangwei.blockchain.util.BtcAddressUtils;
-import one.wangwei.blockchain.util.Bytes;
 import one.wangwei.blockchain.util.Hashes;
 import one.wangwei.blockchain.util.Numbers;
 import one.wangwei.blockchain.wallet.Wallet;
@@ -14,7 +13,6 @@ import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
 import java.util.*;
 
-import static java.lang.System.Logger.Level.ERROR;
 import static java.util.stream.Collectors.toCollection;
 import static one.wangwei.blockchain.util.MerkleRoot.merkleRoot;
 
@@ -25,12 +23,11 @@ import static one.wangwei.blockchain.util.MerkleRoot.merkleRoot;
  * @date 2017/03/04
  */
 public class Transaction {
-    private static final System.Logger logger = System.getLogger(Transaction.class.getName());
     private static final int SUBSIDY = 10;
     /**
      * 交易的Hash
      */
-    private byte[] txId;
+    private TransactionId id;
     /**
      * 交易输入
      */
@@ -67,13 +64,13 @@ public class Transaction {
     public static Transaction newCoinbaseTX(String to, String data) {
         if (data.isBlank()) data = String.format("Reward to '%s'", to);
         // 创建交易输入
-        var txInput = new TXInput(new byte[0], -1, null, data.getBytes());
+        var txInput = new TXInput(new TransactionId(new byte[0]), -1, null, data.getBytes());
         // 创建交易输出
         var txOutput = TXOutput.newTXOutput(SUBSIDY, to);
         // 创建交易
         var tx = new Transaction(null, new TXInput[]{txInput}, new TXOutput[]{txOutput}, Instant.now());
         // 设置交易ID
-        tx.setTxId(tx.hash());
+        tx.setId(new TransactionId(tx.hash()));
         return tx;
     }
 
@@ -83,22 +80,22 @@ public class Transaction {
      * @return
      */
     public boolean isCoinbase() {
-        return getInputs().length == 1 && getInputs()[0].getId().length == 0 && getInputs()[0].getTxOutputIndex() == -1;
+        return getInputs().length == 1 && getInputs()[0].getTxId().value().length == 0 && getInputs()[0].getTxOutputIndex() == -1;
     }
 
-    record TxIoReference(byte[] txId, int index) {
+    record TxIoReference(TransactionId txId, int index) {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null || getClass() != o.getClass()) return false;
             TxIoReference that = (TxIoReference) o;
-            return index == that.index && Arrays.equals(txId, that.txId);
+            return index == that.index && txId.equals(that.txId);
         }
 
         @Override
         public int hashCode() {
             int result = Objects.hash(index);
-            result = 31 * result + Arrays.hashCode(txId);
+            result = 31 * result + txId.hashCode();
             return result;
         }
     }
@@ -121,7 +118,7 @@ public class Transaction {
                 new TXOutput[]{first};
 
         var tx = new Transaction(null, inputs, outputs, Instant.now());
-        tx.setTxId(tx.hash());
+        tx.setId(new TransactionId(tx.hash()));
 
         chain.signTransaction(tx, fromWallet.privateKey());
 
@@ -146,7 +143,7 @@ public class Transaction {
                     // continue to the next output if this one is not of the sender
                     if (!Arrays.equals(output.pubKeyHash(), fromPubKeyHash)) continue;
 
-                    var reference = new TxIoReference(transaction.getTxId(), index);
+                    var reference = new TxIoReference(transaction.getId(), index);
 
                     // continue to the next output if this one is spent
                     if (spent.remove(reference)) continue;
@@ -156,14 +153,12 @@ public class Transaction {
                     // update total
                     total += output.value();
                     // if we have enough then break all the way out
-                    if (total >= amount) {
-                        break processBlocks;
-                    }
+                    if (total >= amount) break processBlocks;
                 }
                 // accumulate transaction inputs of sender
                 for (var input : transaction.getInputs()) {
                     if (Arrays.equals(input.getPubKey(), fromPubKey)) {
-                        spent.add(new TxIoReference(input.getId(), input.getTxOutputIndex()));
+                        spent.add(new TxIoReference(input.getTxId(), input.getTxOutputIndex()));
                     }
                 }
             }
@@ -178,17 +173,17 @@ public class Transaction {
      * @return
      */
     public Transaction trimmedCopy() {
-        var tmpTXInputs = new TXInput[this.getInputs().length];
-        for (var i = 0; i < this.getInputs().length; i++) {
-            var txInput = this.getInputs()[i];
-            tmpTXInputs[i] = new TXInput(txInput.getId(), txInput.getTxOutputIndex(), null, null);
+        var tmpTXInputs = new TXInput[getInputs().length];
+        for (var i = 0; i < getInputs().length; i++) {
+            var txInput = getInputs()[i];
+            tmpTXInputs[i] = new TXInput(txInput.getTxId(), txInput.getTxOutputIndex(), null, null);
         }
-        var tmpTXOutputs = new TXOutput[this.getOutputs().length];
-        for (var i = 0; i < this.getOutputs().length; i++) {
-            var txOutput = this.getOutputs()[i];
+        var tmpTXOutputs = new TXOutput[getOutputs().length];
+        for (var i = 0; i < getOutputs().length; i++) {
+            var txOutput = getOutputs()[i];
             tmpTXOutputs[i] = new TXOutput(txOutput.value(), txOutput.pubKeyHash());
         }
-        return new Transaction(this.getTxId(), tmpTXInputs, tmpTXOutputs, this.getCreated());
+        return new Transaction(getId(), tmpTXInputs, tmpTXOutputs, getCreated());
     }
 
     /**
@@ -197,37 +192,24 @@ public class Transaction {
      * @param privateKey 私钥
      * @param prevTxMap  前面多笔交易集合
      */
-    public void sign(PrivateKey privateKey, Map<byte[], Transaction> prevTxMap) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, NoSuchProviderException {
-        // coinbase 交易信息不需要签名，因为它不存在交易输入信息
-        if (this.isCoinbase()) {
-            return;
-        }
-        // 再次验证一下交易信息中的交易输入是否正确，也就是能否查找对应的交易数据
-        for (var txInput : this.getInputs()) {
-            if (!prevTxMap.containsKey(txInput.getId()))
+    public void sign(PrivateKey privateKey, Map<TransactionId, Transaction> prevTxMap) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, NoSuchProviderException {
+        if (isCoinbase()) return;
+        for (var txInput : getInputs()) {
+            if (!prevTxMap.containsKey(txInput.getTxId()))
                 throw new RuntimeException("ERROR: Previous transaction is not correct");
         }
-        // 创建用于签名的交易信息的副本
-        var txCopy = this.trimmedCopy();
-        var ecdsaSign = Signature.getInstance("SHA256withECDSA", "SunEC");
-        ecdsaSign.initSign(privateKey);
+        var txCopy = trimmedCopy();
+        var signature = Signature.getInstance("SHA256withECDSA", "SunEC");
+        signature.initSign(privateKey);
         for (var i = 0; i < txCopy.getInputs().length; i++) {
             var txInputCopy = txCopy.getInputs()[i];
-            // 获取交易输入TxID对应的交易数据
-            var prevTx = prevTxMap.get(txInputCopy.getId());
-            // 获取交易输入所对应的上一笔交易中的交易输出
+            var prevTx = prevTxMap.get(txInputCopy.getTxId());
             var prevTxOutput = prevTx.getOutputs()[txInputCopy.getTxOutputIndex()];
             txInputCopy.setPubKey(prevTxOutput.pubKeyHash());
             txInputCopy.setSignature(null);
-            // 得到要签名的数据，即交易ID
-            txCopy.setTxId(txCopy.hash());
+            signature.update(txCopy.hash());
+            getInputs()[i].setSignature(signature.sign());
             txInputCopy.setPubKey(null);
-            // 对整个交易信息仅进行签名，即对交易ID进行签名
-            ecdsaSign.update(txCopy.getTxId());
-            var signature = ecdsaSign.sign();
-            // 将整个交易数据的签名赋值给交易输入，因为交易输入需要包含整个交易信息的签名
-            // 注意是将得到的签名赋值给原交易信息中的交易输入
-            this.getInputs()[i].setSignature(signature);
         }
     }
 
@@ -237,52 +219,38 @@ public class Transaction {
      * @param prevTxMap 前面多笔交易集合
      * @return
      */
-    public boolean verify(TreeMap<byte[], Transaction> prevTxMap) {
-        // coinbase 交易信息不需要签名，也就无需验证
-        if (this.isCoinbase()) {
-            return true;
-        }
-        // 再次验证一下交易信息中的交易输入是否正确，也就是能否查找对应的交易数据
-        for (var txInput : this.getInputs()) {
-            if (!prevTxMap.containsKey(txInput.getId()))
+    public boolean verify(Map<TransactionId, Transaction> prevTxMap) throws InvalidKeySpecException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, NoSuchProviderException {
+        if (this.isCoinbase()) return true;
+        for (var txInput : getInputs()) {
+            if (!prevTxMap.containsKey(txInput.getTxId()))
                 throw new RuntimeException("ERROR: Previous transaction is not correct");
         }
-        // 创建用于签名验证的交易信息的副本
-        try {
-            var txCopy = this.trimmedCopy();
-            var keyFactory = KeyFactory.getInstance("EC", "SunEC");
-            var ecdsaVerify = Signature.getInstance("SHA256withECDSA", "SunEC");
-            for (var i = 0; i < this.getInputs().length; i++) {
-                var txInput = this.getInputs()[i];
-                // 获取交易输入TxID对应的交易数据
-                var prevTx = prevTxMap.get(txInput.getId());
-                // 获取交易输入所对应的上一笔交易中的交易输出
-                var prevTxOutput = prevTx.getOutputs()[txInput.getTxOutputIndex()];
-                var txInputCopy = txCopy.getInputs()[i];
-                txInputCopy.setSignature(null);
-                txInputCopy.setPubKey(prevTxOutput.pubKeyHash());
-                // 得到要签名的数据，即交易ID
-                txCopy.setTxId(txCopy.hash());
-                txInputCopy.setPubKey(null);
-                var publicKey = keyFactory.generatePublic(new X509EncodedKeySpec(txInput.getPubKey()));
-                ecdsaVerify.initVerify(publicKey);
-                ecdsaVerify.update(txCopy.getTxId());
-                if (!ecdsaVerify.verify(txInput.getSignature())) {
-                    return false;
-                }
-            }
-            return true;
-        } catch (NoSuchAlgorithmException | SignatureException | InvalidKeyException | InvalidKeySpecException | NoSuchProviderException e) {
-            logger.log(ERROR, "Fail to verify transaction ! transaction invalid ! ", e);
-            return false;
+        var txCopy = trimmedCopy();
+        var keyFactory = KeyFactory.getInstance("EC", "SunEC");
+        var signature = Signature.getInstance("SHA256withECDSA", "SunEC");
+        for (var i = 0; i < getInputs().length; i++) {
+            var txInput = getInputs()[i];
+            var prevTx = prevTxMap.get(txInput.getTxId());
+            var prevTxOutput = prevTx.getOutputs()[txInput.getTxOutputIndex()];
+            var txInputCopy = txCopy.getInputs()[i];
+            txInputCopy.setSignature(null);
+            txInputCopy.setPubKey(prevTxOutput.pubKeyHash());
+            txCopy.setId(new TransactionId(txCopy.hash()));
+            txInputCopy.setPubKey(null);
+            var publicKey = keyFactory.generatePublic(new X509EncodedKeySpec(txInput.getPubKey()));
+            signature.initVerify(publicKey);
+            signature.update(txCopy.getId().value());
+            if (!signature.verify(txInput.getSignature())) return false;
         }
+        return true;
     }
 
     /**
      * 交易的Hash
+     * @return
      */
-    public byte[] getTxId() {
-        return this.txId;
+    public TransactionId getId() {
+        return this.id;
     }
 
     /**
@@ -310,9 +278,10 @@ public class Transaction {
 
     /**
      * 交易的Hash
+     * @param id
      */
-    public void setTxId(final byte[] txId) {
-        this.txId = txId;
+    public void setId(final TransactionId id) {
+        this.id = id;
     }
 
     @Override
@@ -321,7 +290,7 @@ public class Transaction {
         if (!(o instanceof final Transaction other)) return false;
         if (!other.canEqual(this)) return false;
         if (this.getCreated() != other.getCreated()) return false;
-        if (!Arrays.equals(this.getTxId(), other.getTxId())) return false;
+        if (!this.getId().equals(other.getId())) return false;
         if (!Arrays.deepEquals(this.getInputs(), other.getInputs())) return false;
         return Arrays.deepEquals(this.getOutputs(), other.getOutputs());
     }
@@ -336,7 +305,7 @@ public class Transaction {
         int result = 1;
         final long $createTime = this.getCreated().toEpochMilli();
         result = result * PRIME + (int) ($createTime >>> 32 ^ $createTime);
-        result = result * PRIME + Arrays.hashCode(this.getTxId());
+        result = result * PRIME + this.getId().hashCode();
         result = result * PRIME + Arrays.deepHashCode(this.getInputs());
         result = result * PRIME + Arrays.deepHashCode(this.getOutputs());
         return result;
@@ -344,11 +313,11 @@ public class Transaction {
 
     @Override
     public String toString() {
-        return "Transaction[txId=" + Bytes.byteArrayToHex(this.getTxId()) + ", inputs=" + Arrays.deepToString(this.getInputs()) + ", outputs=" + Arrays.deepToString(this.getOutputs()) + ", createTime=" + this.getCreated() + "]";
+        return "Transaction[txId=" + id + ", inputs=" + Arrays.deepToString(this.getInputs()) + ", outputs=" + Arrays.deepToString(this.getOutputs()) + ", createTime=" + this.getCreated() + "]";
     }
 
-    public Transaction(final byte[] txId, final TXInput[] inputs, final TXOutput[] outputs, final Instant created) {
-        this.txId = txId;
+    public Transaction(final TransactionId id, final TXInput[] inputs, final TXOutput[] outputs, final Instant created) {
+        this.id = id;
         this.inputs = inputs;
         this.outputs = outputs;
         this.created = created;

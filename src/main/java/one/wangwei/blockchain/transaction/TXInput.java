@@ -16,7 +16,7 @@ public class TXInput {
     /**
      * 交易Id的hash值
      */
-    private final byte[] txId;
+    private final TransactionId txId;
     /**
      * 交易输出索引
      */
@@ -32,8 +32,9 @@ public class TXInput {
 
     /**
      * 交易Id的hash值
+     * @return
      */
-    public byte[] getId() {
+    public TransactionId getTxId() {
         return this.txId;
     }
 
@@ -73,7 +74,7 @@ public class TXInput {
     }
 
     public byte[] hash() {
-        return Hashes.sha256(txId, Numbers.toBytes(txOutputIndex), signature, pubKey);
+        return Hashes.sha256(txId.value(), Numbers.toBytes(txOutputIndex), signature, pubKey);
     }
 
     @Override
@@ -83,7 +84,7 @@ public class TXInput {
         final TXInput other = (TXInput) o;
         if (!other.canEqual((Object) this)) return false;
         if (this.getTxOutputIndex() != other.getTxOutputIndex()) return false;
-        if (!Arrays.equals(this.getId(), other.getId())) return false;
+        if (!this.getTxId().equals(other.getTxId())) return false;
         if (!Arrays.equals(this.getSignature(), other.getSignature())) return false;
         if (!Arrays.equals(this.getPubKey(), other.getPubKey())) return false;
         return true;
@@ -98,7 +99,7 @@ public class TXInput {
         final int PRIME = 59;
         int result = 1;
         result = result * PRIME + this.getTxOutputIndex();
-        result = result * PRIME + Arrays.hashCode(this.getId());
+        result = result * PRIME + this.getTxId().hashCode();
         result = result * PRIME + Arrays.hashCode(this.getSignature());
         result = result * PRIME + Arrays.hashCode(this.getPubKey());
         return result;
@@ -106,10 +107,10 @@ public class TXInput {
 
     @Override
     public String toString() {
-        return "TXInput[txId=" + Bytes.byteArrayToHex(this.getId()) + ", txOutputIndex=" + this.getTxOutputIndex() + ", signature=" + Bytes.byteArrayToHex(this.getSignature()) + ", pubKey=" + Bytes.byteArrayToHex(this.getPubKey()) + "]";
+        return "TXInput[txId=" + this.getTxId() + ", txOutputIndex=" + this.getTxOutputIndex() + ", signature=" + Bytes.byteArrayToHex(this.getSignature()) + ", pubKey=" + Bytes.byteArrayToHex(this.getPubKey()) + "]";
     }
 
-    public TXInput(final byte[] txId, final int txOutputIndex, final byte[] signature, final byte[] pubKey) {
+    public TXInput(final TransactionId txId, final int txOutputIndex, final byte[] signature, final byte[] pubKey) {
         this.txId = txId;
         this.txOutputIndex = txOutputIndex;
         this.signature = signature;

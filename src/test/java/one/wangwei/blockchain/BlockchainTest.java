@@ -10,7 +10,8 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.rocksdb.RocksDBException;
 
-import java.security.Security;
+import java.security.*;
+import java.security.spec.InvalidKeySpecException;
 
 /**
  * 测试
@@ -23,7 +24,7 @@ public class BlockchainTest {
     }
 
     @Test
-    public void shouldVerify() throws RocksDBException {
+    public void shouldVerify() throws RocksDBException, InvalidKeySpecException, SignatureException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, InvalidAlgorithmParameterException {
         var wallet = Wallet.createWallet();
         var data = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
         var tx = Transaction.newCoinbaseTX(wallet.getAddress(), data);
@@ -37,7 +38,7 @@ public class BlockchainTest {
 //            var argss = new String[]{"printaddresses"};
             var argss = new String[]{"printchain"};
 //            var argss = new String[]{"getbalance", "-address", "1JCnyVZZZgPbhDM6bDn5LzgLcFQtAqEsZy"};
-//            var argss = new String[]{"send", "-from", "1JCnyVZZZgPbhDM6bDn5LzgLcFQtAqEsZy", "-to", "1LWdJqVcEat6GiLRWyfB9ewTjdqGPrfeug", "-amount", "5"};
+//            var argss = new String[]{"send", "-from", "1JCnyVZZZgPbhDM6bDn5LzgLcFQtAqEsZy", "-to", "1LWdJqVcEat6GiLRWyfB9ewTjdqGPrfeug", "-amount", "15"};
             new CLI(argss).parse();
         } catch (Exception e) {
             e.printStackTrace();

@@ -3,8 +3,10 @@ package one.wangwei.blockchain.block;
 import one.wangwei.blockchain.store.RocksDbBlockRepository;
 import one.wangwei.blockchain.transaction.TXInput;
 import one.wangwei.blockchain.transaction.Transaction;
+import one.wangwei.blockchain.transaction.TransactionId;
 
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -37,7 +39,7 @@ public class Blockchain implements Iterable<Block> {
         this.storage = storage;
     }
 
-    public Optional<Block> mineBlock(Transaction[] transactions) {
+    public Optional<Block> mineBlock(Transaction[] transactions) throws InvalidKeySpecException, SignatureException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException {
         for (var tx : transactions) {
             if (!verifyTransactions(tx)) {
                 logger.log(ERROR, () -> "Fail to mine block ! Invalid transaction ! tx=%s".formatted(tx));
@@ -84,38 +86,34 @@ public class Blockchain implements Iterable<Block> {
         return StreamSupport.stream(spliterator(), false);
     }
 
-    private Optional<Transaction> findTransaction(byte[] txId) {
+    private Optional<Transaction> findTransaction(TransactionId txId) {
         return stream()
                 .flatMap(x -> Arrays.stream(x.transactions()))
-                .filter(x -> Arrays.equals(x.getTxId(), txId))
+                .filter(x -> x.getId().equals(txId))
                 .findFirst();
     }
 
     public void signTransaction(Transaction tx, PrivateKey privateKey) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
         var prevTx = Arrays.stream(tx.getInputs())
-                .map(TXInput::getId)
+                .map(TXInput::getTxId)
                 .map(this::findTransaction)
                 .flatMap(Optional::stream)
                 .collect(toMap(
-                        Transaction::getTxId,
-                        Function.identity(),
-                        (a, b) -> a,
-                        () -> new TreeMap<byte[], Transaction>(Arrays::compare)
+                        Transaction::getId,
+                        Function.identity()
                 ));
         tx.sign(privateKey, prevTx);
     }
 
-    public boolean verifyTransactions(Transaction tx) {
+    public boolean verifyTransactions(Transaction tx) throws InvalidKeySpecException, SignatureException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException {
         if (tx.isCoinbase()) return true;
         var prevTx = Arrays.stream(tx.getInputs())
-                .map(TXInput::getId)
+                .map(TXInput::getTxId)
                 .map(this::findTransaction)
                 .flatMap(Optional::stream)
                 .collect(toMap(
-                        Transaction::getTxId,
-                        Function.identity(),
-                        (a, b) -> a,
-                        () -> new TreeMap<byte[], Transaction>(Arrays::compare)
+                        Transaction::getId,
+                        Function.identity()
                 ));
         return tx.verify(prevTx);
     }

@@ -9,6 +9,9 @@ import javax.crypto.CipherOutputStream;
 import javax.crypto.SealedObject;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
 import java.util.*;
 
 import static java.lang.System.Logger.Level.ERROR;
@@ -93,7 +96,7 @@ public class WalletUtils {
      *
      * @return
      */
-    public Wallet createWallet() {
+    public Wallet createWallet() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
         var wallet = Wallet.createWallet();
         var wallets = loadFromDisk().orElse(new Wallets());
         wallets.addWallet(wallet);

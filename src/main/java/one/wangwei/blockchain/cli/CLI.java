@@ -16,6 +16,7 @@ import org.rocksdb.RocksDBException;
 
 import java.io.IOException;
 import java.security.*;
+import java.security.spec.InvalidKeySpecException;
 import java.util.logging.LogManager;
 
 import static java.lang.System.*;
@@ -54,7 +55,7 @@ public class CLI {
         options.addOption(sendAmount);
     }
 
-    public void parse() throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException, RocksDBException, ParseException {
+    public void parse() throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException, RocksDBException, ParseException, InvalidKeySpecException, InvalidAlgorithmParameterException {
         this.validateArgs(args);
         try (var storage = new RocksDbBlockRepository()) {
             var cmd = new DefaultParser().parse(options, args);
@@ -101,7 +102,7 @@ public class CLI {
         logger.log(INFO, "Done ! ");
     }
 
-    private void createWallet() {
+    private void createWallet() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
         var wallet = WalletUtils.getInstance().createWallet();
         logger.log(INFO, () -> "wallet address : %s".formatted(wallet.getAddress()));
     }
@@ -126,7 +127,7 @@ public class CLI {
         logger.log(INFO, () -> "Balance of '%s': %s".formatted(address, txOutputs.total()));
     }
 
-    private void send(RocksDbBlockRepository storage, String from, String to, int amount) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
+    private void send(RocksDbBlockRepository storage, String from, String to, int amount) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException, InvalidKeySpecException {
         // 检查钱包地址是否合法
         Base58Check.decodeChecked(from);
         // 检查钱包地址是否合法

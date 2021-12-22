@@ -1,17 +1,14 @@
 package one.wangwei.blockchain.block;
 
-import one.wangwei.blockchain.util.Bytes;
-
 import java.util.Arrays;
+import java.util.HexFormat;
 
 public record BlockId(byte[] value) {
     public static final BlockId Null = new BlockId(new byte[32]);
 
     @Override
     public String toString() {
-        return "BlockId[" +
-                "value=" + Bytes.byteArrayToHex(value) +
-                ']';
+        return HexFormat.of().formatHex(value);
     }
 
     @Override

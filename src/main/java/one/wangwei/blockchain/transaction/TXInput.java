@@ -1,10 +1,10 @@
 package one.wangwei.blockchain.transaction;
 
-import one.wangwei.blockchain.util.Bytes;
 import one.wangwei.blockchain.util.Hashes;
 import one.wangwei.blockchain.util.Numbers;
 
 import java.util.Arrays;
+import java.util.HexFormat;
 
 /**
  * 交易输入
@@ -107,7 +107,7 @@ public class TXInput {
 
     @Override
     public String toString() {
-        return "TXInput[txId=" + this.getTxId() + ", txOutputIndex=" + this.getTxOutputIndex() + ", signature=" + Bytes.byteArrayToHex(this.getSignature()) + ", pubKey=" + Bytes.byteArrayToHex(this.getPubKey()) + "]";
+        return "TXInput[txId=" + this.getTxId() + ", txOutputIndex=" + this.getTxOutputIndex() + ", signature=" + HexFormat.of().formatHex(this.getSignature()) + ", pubKey=" + HexFormat.of().formatHex(this.getPubKey()) + "]";
     }
 
     public TXInput(final TransactionId txId, final int txOutputIndex, final byte[] signature, final byte[] pubKey) {

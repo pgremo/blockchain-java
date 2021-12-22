@@ -1,8 +1,7 @@
 package one.wangwei.blockchain.transaction;
 
-import one.wangwei.blockchain.util.Bytes;
-
 import java.util.Arrays;
+import java.util.HexFormat;
 
 public record TransactionId(byte[] value) {
     @Override
@@ -20,6 +19,6 @@ public record TransactionId(byte[] value) {
 
     @Override
     public String toString() {
-        return Bytes.byteArrayToHex(value);
+        return HexFormat.of().formatHex(value);
     }
 }

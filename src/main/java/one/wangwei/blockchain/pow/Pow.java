@@ -2,10 +2,10 @@ package one.wangwei.blockchain.pow;
 
 import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.transaction.Transaction;
-import one.wangwei.blockchain.util.Bytes;
 import one.wangwei.blockchain.util.Numbers;
 
 import java.math.BigInteger;
+import java.util.HexFormat;
 import java.util.LinkedList;
 import java.util.Optional;
 import java.util.stream.LongStream;
@@ -32,7 +32,7 @@ public class Pow {
                 .filter(x -> new BigInteger(1, x.hash()).compareTo(target) < 0)
                 .peek(x -> {
                     logger.log(INFO, () -> "Elapsed Time: %s seconds ".formatted(between(start, now())));
-                    logger.log(INFO, () -> "correct hash Hex: %s".formatted(Bytes.byteArrayToHex(x.hash())));
+                    logger.log(INFO, () -> "correct hash Hex: %s".formatted(HexFormat.of().formatHex(x.hash())));
                 })
                 .findFirst();
     }

@@ -235,11 +235,10 @@ public class Transaction {
             var txInputCopy = txCopy.getInputs()[i];
             txInputCopy.setSignature(null);
             txInputCopy.setPubKey(prevTxOutput.pubKeyHash());
-            txCopy.setId(new TransactionId(txCopy.hash()));
             txInputCopy.setPubKey(null);
             var publicKey = keyFactory.generatePublic(new X509EncodedKeySpec(txInput.getPubKey()));
             signature.initVerify(publicKey);
-            signature.update(txCopy.getId().value());
+            signature.update(txCopy.hash());
             if (!signature.verify(txInput.getSignature())) return false;
         }
         return true;

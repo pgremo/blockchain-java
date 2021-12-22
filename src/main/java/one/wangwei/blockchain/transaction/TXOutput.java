@@ -1,11 +1,11 @@
 package one.wangwei.blockchain.transaction;
 
 import one.wangwei.blockchain.util.Base58Check;
-import one.wangwei.blockchain.util.Bytes;
 import one.wangwei.blockchain.util.Hashes;
 import one.wangwei.blockchain.util.Numbers;
 
 import java.util.Arrays;
+import java.util.HexFormat;
 
 /**
  * 交易输出
@@ -47,7 +47,7 @@ public record TXOutput(int value, byte[] pubKeyHash) {
     public String toString() {
         return "TXOutput[" +
                 "value=" + value +
-                ", pubKeyHash=" + Bytes.byteArrayToHex(pubKeyHash) +
+                ", pubKeyHash=" + HexFormat.of().formatHex(pubKeyHash) +
                 ']';
     }
 }

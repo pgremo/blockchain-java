@@ -96,12 +96,10 @@ public class Blockchain implements Iterable<Block> {
     public void signTransaction(Transaction tx, PrivateKey privateKey) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
         var prevTx = Arrays.stream(tx.getInputs())
                 .map(TXInput::getTxId)
+                .distinct()
                 .map(this::findTransaction)
                 .flatMap(Optional::stream)
-                .collect(toMap(
-                        Transaction::getId,
-                        Function.identity()
-                ));
+                .collect(toMap(Transaction::getId, Function.identity()));
         tx.sign(privateKey, prevTx);
     }
 
@@ -109,12 +107,10 @@ public class Blockchain implements Iterable<Block> {
         if (tx.isCoinbase()) return true;
         var prevTx = Arrays.stream(tx.getInputs())
                 .map(TXInput::getTxId)
+                .distinct()
                 .map(this::findTransaction)
                 .flatMap(Optional::stream)
-                .collect(toMap(
-                        Transaction::getId,
-                        Function.identity()
-                ));
+                .collect(toMap(Transaction::getId, Function.identity()));
         return tx.verify(prevTx);
     }
 

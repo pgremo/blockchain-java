@@ -4,6 +4,7 @@ import one.wangwei.blockchain.block.Blockchain;
 import one.wangwei.blockchain.util.BtcAddressUtils;
 import one.wangwei.blockchain.util.Hashes;
 import one.wangwei.blockchain.util.Numbers;
+import one.wangwei.blockchain.wallet.Address;
 import one.wangwei.blockchain.wallet.Wallet;
 import one.wangwei.blockchain.wallet.WalletUtils;
 
@@ -61,7 +62,7 @@ public class Transaction {
      * @param data 解锁脚本数据
      * @return
      */
-    public static Transaction newCoinbaseTX(String to, String data) {
+    public static Transaction newCoinbaseTX(Address to, String data) {
         if (data.isBlank()) data = String.format("Reward to '%s'", to);
         // 创建交易输入
         var txInput = new TXInput(new TransactionId(new byte[0]), -1, null, data.getBytes());
@@ -100,7 +101,7 @@ public class Transaction {
         }
     }
 
-    public static Transaction create(String from, String to, int amount, Blockchain chain) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException {
+    public static Transaction create(Address from, Address to, int amount, Blockchain chain) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException {
         var fromWallet = WalletUtils.getInstance().getWallet(from);
         var result = getUnspent(amount, chain, fromWallet);
         if (result.total() < amount) throw new RuntimeException("insufficient funds");

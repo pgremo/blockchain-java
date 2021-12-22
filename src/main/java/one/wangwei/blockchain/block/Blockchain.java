@@ -4,6 +4,7 @@ import one.wangwei.blockchain.store.RocksDbBlockRepository;
 import one.wangwei.blockchain.transaction.TXInput;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.transaction.TransactionId;
+import one.wangwei.blockchain.wallet.Address;
 
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
@@ -23,7 +24,7 @@ public class Blockchain implements Iterable<Block> {
 
     private final RocksDbBlockRepository storage;
 
-    public static Blockchain createBlockchain(RocksDbBlockRepository storage, String address) {
+    public static Blockchain createBlockchain(RocksDbBlockRepository storage, Address address) {
         var result = new Blockchain(storage);
         var last = result.getLastBlockHash();
         if (last.isEmpty()) {

@@ -6,6 +6,7 @@ import one.wangwei.blockchain.store.RocksDbBlockRepository;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.Base58Check;
 import one.wangwei.blockchain.util.Numbers;
+import one.wangwei.blockchain.wallet.Address;
 import one.wangwei.blockchain.wallet.WalletUtils;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
@@ -61,24 +62,24 @@ public class CLI {
             var cmd = new DefaultParser().parse(options, args);
             switch (args[0]) {
                 case "createblockchain" -> {
-                    var createblockchainAddress = cmd.getOptionValue("address");
-                    if (createblockchainAddress.isBlank()) {
+                    var createblockchainAddress = new Address(cmd.getOptionValue("address"));
+                    if (createblockchainAddress.value().isBlank()) {
                         help();
                     }
                     this.createBlockchain(storage, createblockchainAddress);
                 }
                 case "getbalance" -> {
-                    var getBalanceAddress = cmd.getOptionValue("address");
-                    if (getBalanceAddress.isBlank()) {
+                    var getBalanceAddress = new Address(cmd.getOptionValue("address"));
+                    if (getBalanceAddress.value().isBlank()) {
                         help();
                     }
                     this.getBalance(storage, getBalanceAddress);
                 }
                 case "send" -> {
-                    var sendFrom = cmd.getOptionValue("from");
-                    var sendTo = cmd.getOptionValue("to");
+                    var sendFrom = new Address(cmd.getOptionValue("from"));
+                    var sendTo = new Address(cmd.getOptionValue("to"));
                     var sendAmount = Numbers.parseInteger(cmd.getOptionValue("amount"));
-                    if (sendFrom.isBlank() || sendTo.isBlank() || sendAmount.isEmpty()) {
+                    if (sendFrom.value().isBlank() || sendTo.value().isBlank() || sendAmount.isEmpty()) {
                         help();
                     }
                     this.send(storage, sendFrom, sendTo, sendAmount.orElseThrow());
@@ -97,7 +98,7 @@ public class CLI {
         }
     }
 
-    private void createBlockchain(RocksDbBlockRepository storage, String address) {
+    private void createBlockchain(RocksDbBlockRepository storage, Address address) {
         Blockchain.createBlockchain(storage, address);
         logger.log(INFO, "Done ! ");
     }
@@ -118,20 +119,20 @@ public class CLI {
         }
     }
 
-    private void getBalance(RocksDbBlockRepository storage, String address) {
+    private void getBalance(RocksDbBlockRepository storage, Address address) {
         // 检查钱包地址是否合法
-        Base58Check.decodeChecked(address);
+        Base58Check.decodeChecked(address.value());
         // 得到公钥Hash值
         var blockchain = Blockchain.createBlockchain(storage, address);
         var txOutputs = Transaction.getUnspent(Integer.MAX_VALUE, blockchain, WalletUtils.getInstance().getWallet(address));
         logger.log(INFO, () -> "Balance of '%s': %s".formatted(address, txOutputs.total()));
     }
 
-    private void send(RocksDbBlockRepository storage, String from, String to, int amount) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException, InvalidKeySpecException {
+    private void send(RocksDbBlockRepository storage, Address from, Address to, int amount) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException, InvalidKeySpecException {
         // 检查钱包地址是否合法
-        Base58Check.decodeChecked(from);
+        Base58Check.decodeChecked(from.value());
         // 检查钱包地址是否合法
-        Base58Check.decodeChecked(to);
+        Base58Check.decodeChecked(to.value());
         if (amount < 1) {
             logger.log(ERROR, "amount invalid ! amount=%s".formatted(amount));
             throw new RuntimeException("amount invalid ! amount=" + amount);

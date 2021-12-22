@@ -35,28 +35,28 @@ public class TXInput {
      * @return
      */
     public TransactionId getTxId() {
-        return this.txId;
+        return txId;
     }
 
     /**
      * 交易输出索引
      */
     public int getTxOutputIndex() {
-        return this.txOutputIndex;
+        return txOutputIndex;
     }
 
     /**
      * 签名
      */
     public byte[] getSignature() {
-        return this.signature;
+        return signature;
     }
 
     /**
      * 公钥
      */
     public byte[] getPubKey() {
-        return this.pubKey;
+        return pubKey;
     }
 
     /**
@@ -82,7 +82,7 @@ public class TXInput {
         if (o == this) return true;
         if (!(o instanceof TXInput)) return false;
         final TXInput other = (TXInput) o;
-        if (!other.canEqual((Object) this)) return false;
+        if (!other.canEqual(this)) return false;
         if (this.getTxOutputIndex() != other.getTxOutputIndex()) return false;
         if (!this.getTxId().equals(other.getTxId())) return false;
         if (!Arrays.equals(this.getSignature(), other.getSignature())) return false;
@@ -98,16 +98,21 @@ public class TXInput {
     public int hashCode() {
         final int PRIME = 59;
         int result = 1;
-        result = result * PRIME + this.getTxOutputIndex();
-        result = result * PRIME + this.getTxId().hashCode();
-        result = result * PRIME + Arrays.hashCode(this.getSignature());
-        result = result * PRIME + Arrays.hashCode(this.getPubKey());
+        result = result * PRIME + getTxOutputIndex();
+        result = result * PRIME + getTxId().hashCode();
+        result = result * PRIME + Arrays.hashCode(getSignature());
+        result = result * PRIME + Arrays.hashCode(getPubKey());
         return result;
     }
 
     @Override
     public String toString() {
-        return "TXInput[txId=" + this.getTxId() + ", txOutputIndex=" + this.getTxOutputIndex() + ", signature=" + HexFormat.of().formatHex(this.getSignature()) + ", pubKey=" + HexFormat.of().formatHex(this.getPubKey()) + "]";
+        return "TXInput[txId=%s, txOutputIndex=%d, signature=%s, pubKey=%s]".formatted(
+                txId,
+                txOutputIndex,
+                signature == null ? "" : HexFormat.of().formatHex(signature),
+                pubKey == null ? "" : HexFormat.of().formatHex(pubKey)
+        );
     }
 
     public TXInput(final TransactionId txId, final int txOutputIndex, final byte[] signature, final byte[] pubKey) {

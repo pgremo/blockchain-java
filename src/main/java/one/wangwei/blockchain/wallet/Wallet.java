@@ -24,7 +24,7 @@ public record Wallet(PrivateKey privateKey, PublicKey publicKey) implements Seri
         return generator.generateKeyPair();
     }
 
-    public String getAddress() {
+    public Address getAddress() {
         var buffer = new byte[25];
         buffer[0] = 0;
         byte[] hash = ripeMD160Hash(publicKey.getEncoded());
@@ -33,6 +33,6 @@ public record Wallet(PrivateKey privateKey, PublicKey publicKey) implements Seri
         arraycopy(buffer, 0, versioned, 0, versioned.length);
         var check = checksum(versioned);
         arraycopy(check, 0, buffer, 21, check.length);
-        return encode(buffer);
+        return new Address(encode(buffer));
     }
 }

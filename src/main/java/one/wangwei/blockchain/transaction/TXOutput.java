@@ -3,6 +3,7 @@ package one.wangwei.blockchain.transaction;
 import one.wangwei.blockchain.util.Base58Check;
 import one.wangwei.blockchain.util.Hashes;
 import one.wangwei.blockchain.util.Numbers;
+import one.wangwei.blockchain.wallet.Address;
 
 import java.util.Arrays;
 import java.util.HexFormat;
@@ -22,9 +23,9 @@ public record TXOutput(int value, byte[] pubKeyHash) {
      * @param address
      * @return
      */
-    public static TXOutput newTXOutput(int value, String address) {
+    public static TXOutput newTXOutput(int value, Address address) {
         // 反向转化为 byte 数组
-        var versionedPayload = Base58Check.decodeChecked(address);
+        var versionedPayload = Base58Check.decodeChecked(address.value());
         var pubKeyHash = Arrays.copyOfRange(versionedPayload, 1, versionedPayload.length);
         return new TXOutput(value, pubKeyHash);
     }

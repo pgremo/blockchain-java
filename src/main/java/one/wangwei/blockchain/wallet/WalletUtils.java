@@ -77,7 +77,7 @@ public class WalletUtils {
      *
      * @return
      */
-    public Set<String> getAddresses() {
+    public Set<Address> getAddresses() {
         return loadFromDisk().orElseThrow().getAddresses();
     }
 
@@ -87,7 +87,7 @@ public class WalletUtils {
      * @param address 钱包地址
      * @return
      */
-    public Wallet getWallet(String address) {
+    public Wallet getWallet(Address address) {
         return loadFromDisk().orElseThrow().getWallet(address);
     }
 
@@ -152,7 +152,7 @@ public class WalletUtils {
     public static class Wallets implements Serializable {
         @Serial
         private static final long serialVersionUID = -2542070981569243131L;
-        private final Map<String, Wallet> walletMap = new HashMap<>();
+        private final Map<Address, Wallet> walletMap = new HashMap<>();
 
         /**
          * 添加钱包
@@ -168,7 +168,7 @@ public class WalletUtils {
          *
          * @return
          */
-        Set<String> getAddresses() {
+        Set<Address> getAddresses() {
             return walletMap.keySet();
         }
 
@@ -178,10 +178,10 @@ public class WalletUtils {
          * @param address 钱包地址
          * @return
          */
-        Wallet getWallet(String address) {
+        Wallet getWallet(Address address) {
             // 检查钱包地址是否合法
             try {
-                Base58Check.decodeChecked(address);
+                Base58Check.decodeChecked(address.value());
             } catch (Exception e) {
                 logger.log(ERROR, "Fail to get wallet ! address invalid ! address=" + address, e);
                 throw new RuntimeException("Fail to get wallet ! ");

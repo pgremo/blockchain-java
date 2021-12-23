@@ -1,6 +1,5 @@
 package one.wangwei.blockchain.wallet;
 
-import one.wangwei.blockchain.util.Base58Check;
 import one.wangwei.blockchain.util.SerializeUtils;
 
 import javax.crypto.Cipher;
@@ -179,13 +178,6 @@ public class WalletUtils {
          * @return
          */
         Wallet getWallet(Address address) {
-            // 检查钱包地址是否合法
-            try {
-                Base58Check.decodeChecked(address.value());
-            } catch (Exception e) {
-                logger.log(ERROR, "Fail to get wallet ! address invalid ! address=" + address, e);
-                throw new RuntimeException("Fail to get wallet ! ");
-            }
             var wallet = walletMap.get(address);
             if (wallet == null) {
                 logger.log(ERROR, "Fail to get wallet ! wallet don`t exist ! address=" + address);

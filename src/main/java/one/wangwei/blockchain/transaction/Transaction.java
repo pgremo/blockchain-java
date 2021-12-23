@@ -236,11 +236,11 @@ public class Transaction {
             var txInputCopy = txCopy.getInputs()[i];
             txInputCopy.setSignature(null);
             txInputCopy.setPubKey(prevTxOutput.pubKeyHash());
-            txInputCopy.setPubKey(null);
             var publicKey = keyFactory.generatePublic(new X509EncodedKeySpec(txInput.getPubKey()));
             signature.initVerify(publicKey);
             signature.update(txCopy.hash());
             if (!signature.verify(txInput.getSignature())) return false;
+            txInputCopy.setPubKey(null);
         }
         return true;
     }

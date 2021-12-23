@@ -12,6 +12,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Optional;
 
 /**
  * Base58 转化工具
@@ -58,7 +59,7 @@ public final class Base58Check {
      * @param data
      * @return
      */
-    static byte[] addCheck(byte[] data) {
+    private static byte[] addCheck(byte[] data) {
         try {
             var hash = Arrays.copyOf(BtcAddressUtils.doubleHash(data), 4);
             var buf = new ByteArrayOutputStream();
@@ -79,14 +80,15 @@ public final class Base58Check {
      * @return
      */
     public static byte[] decodeChecked(String s) {
+        return valueOf(s).orElseThrow(() -> new IllegalArgumentException("Checksum mismatch"));
+    }
+
+    public static Optional<byte[]> valueOf(String s) {
         var decoded = decode(s);
         var data = Arrays.copyOf(decoded, decoded.length - 4);
         var check = Arrays.copyOfRange(decoded, decoded.length - 4, decoded.length);
         var hash = Arrays.copyOf(BtcAddressUtils.doubleHash(data), 4);
-        if (!Arrays.equals(hash, check)) {
-            throw new IllegalArgumentException("Checksum mismatch");
-        }
-        return data;
+        return Arrays.equals(hash, check) ? Optional.of(data) : Optional.empty();
     }
 
 

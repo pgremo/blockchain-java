@@ -8,8 +8,8 @@ import com.esotericsoftware.kryo.serializers.RecordSerializer;
 import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy;
 import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.block.BlockId;
-import one.wangwei.blockchain.transaction.TXInput;
-import one.wangwei.blockchain.transaction.TXOutput;
+import one.wangwei.blockchain.transaction.TxInput;
+import one.wangwei.blockchain.transaction.TxOutput;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.transaction.TransactionId;
 import org.objenesis.strategy.StdInstantiatorStrategy;
@@ -47,10 +47,10 @@ public final class SerializeUtils {
         kryo.register(Transaction[].class);
         kryo.register(TransactionId.class);
         kryo.register(TreeMap.class, new JavaSerializer());
-        kryo.register(TXInput.class);
-        kryo.register(TXInput[].class);
-        kryo.register(TXOutput.class);
-        kryo.register(TXOutput[].class);
+        kryo.register(TxInput.class);
+        kryo.register(TxInput[].class);
+        kryo.register(TxOutput.class);
+        kryo.register(TxOutput[].class);
         kryo.register(byte[].class);
     }
 

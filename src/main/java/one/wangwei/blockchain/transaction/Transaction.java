@@ -12,7 +12,14 @@ import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import static java.util.stream.Collectors.toCollection;
 import static one.wangwei.blockchain.util.MerkleRoot.merkleRoot;
@@ -32,11 +39,11 @@ public class Transaction {
     /**
      * 交易输入
      */
-    private final TXInput[] inputs;
+    private final TxInput[] inputs;
     /**
      * 交易输出
      */
-    private final TXOutput[] outputs;
+    private final TxOutput[] outputs;
     /**
      * 创建日期
      */
@@ -49,8 +56,8 @@ public class Transaction {
      */
     public byte[] hash() {
         return Hashes.sha256(
-                merkleRoot(Arrays.stream(getInputs()).map(TXInput::hash).collect(toCollection(LinkedList::new))),
-                merkleRoot(Arrays.stream(getOutputs()).map(TXOutput::hash).collect(toCollection(LinkedList::new))),
+                merkleRoot(Arrays.stream(getInputs()).map(TxInput::hash).collect(toCollection(LinkedList::new))),
+                merkleRoot(Arrays.stream(getOutputs()).map(TxOutput::hash).collect(toCollection(LinkedList::new))),
                 Numbers.toBytes(getCreated().toEpochMilli())
         );
     }
@@ -65,11 +72,11 @@ public class Transaction {
     public static Transaction newCoinbaseTX(Address to, String data) {
         if (data.isBlank()) data = String.format("Reward to '%s'", to);
         // 创建交易输入
-        var txInput = new TXInput(new TransactionId(new byte[0]), -1, null, data.getBytes());
+        var txInput = new TxInput(new TransactionId(new byte[0]), -1, null, data.getBytes());
         // 创建交易输出
-        var txOutput = TXOutput.newTXOutput(SUBSIDY, to);
+        var txOutput = TxOutput.newTXOutput(SUBSIDY, to);
         // 创建交易
-        var tx = new Transaction(null, new TXInput[]{txInput}, new TXOutput[]{txOutput}, Instant.now());
+        var tx = new Transaction(null, new TxInput[]{txInput}, new TxOutput[]{txOutput}, Instant.now());
         // 设置交易ID
         tx.setId(new TransactionId(tx.hash()));
         return tx;
@@ -85,38 +92,38 @@ public class Transaction {
     }
 
     record TxIoReference(TransactionId txId, int index) {
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            TxIoReference that = (TxIoReference) o;
-            return index == that.index && txId.equals(that.txId);
-        }
+    }
 
-        @Override
-        public int hashCode() {
-            int result = Objects.hash(index);
-            result = 31 * result + txId.hashCode();
-            return result;
-        }
+    public record TxOutputReference(TransactionId txId, int index, TxOutput output) {
     }
 
     public static Transaction create(Address from, Address to, int amount, Blockchain chain) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException {
         var fromWallet = WalletUtils.getInstance().getWallet(from);
-        var result = getUnspent(amount, chain, fromWallet);
-        if (result.total() < amount) throw new RuntimeException("insufficient funds");
+        var predicate = new Predicate<TxOutputReference>() {
+            private int total;
 
-        var inputs = result.unspent().stream()
-                .map(x -> new TXInput(x.txId(), x.index(), null, fromWallet.publicKey().getEncoded()))
-                .toArray(TXInput[]::new);
+            @Override
+            public boolean test(TxOutputReference x) {
+                total += x.output().value();
+                return total < amount;
+            }
+        };
+        var result = getUnspent(chain, fromWallet)
+                .takeWhile(predicate)
+                .toList();
+        if (predicate.total < amount) throw new RuntimeException("insufficient funds");
+
+        var inputs = result.stream()
+                .map(x -> new TxInput(x.txId(), x.index(), null, fromWallet.publicKey().getEncoded()))
+                .toArray(TxInput[]::new);
 
         var toWallet = WalletUtils.getInstance().getWallet(to);
         var toPubKey = toWallet.publicKey().getEncoded();
         var toPubKeyHash = BtcAddressUtils.ripeMD160Hash(toPubKey);
-        var first = new TXOutput(amount, toPubKeyHash);
-        var outputs = result.total() > amount ?
-                new TXOutput[]{first, new TXOutput(result.total() - amount, BtcAddressUtils.ripeMD160Hash(fromWallet.publicKey().getEncoded()))} :
-                new TXOutput[]{first};
+        var first = new TxOutput(amount, toPubKeyHash);
+        var outputs = predicate.total > amount ?
+                new TxOutput[]{first, new TxOutput(predicate.total - amount, BtcAddressUtils.ripeMD160Hash(fromWallet.publicKey().getEncoded()))} :
+                new TxOutput[]{first};
 
         var tx = new Transaction(null, inputs, outputs, Instant.now());
         tx.setId(new TransactionId(tx.hash()));
@@ -126,47 +133,53 @@ public class Transaction {
         return tx;
     }
 
-    public static UnspentResult getUnspent(int amount, Blockchain chain, Wallet fromWallet) {
+    public static Stream<TxOutputReference> getUnspent(Blockchain chain, Wallet fromWallet) {
         var fromPubKey = fromWallet.publicKey().getEncoded();
         var fromPubKeyHash = BtcAddressUtils.ripeMD160Hash(fromPubKey);
-        var spent = new LinkedList<TxIoReference>();
 
-        var unspent = new LinkedList<TxIoReference>();
-        var total = 0;
+        return StreamSupport.stream(chain.spliterator(), false)
+                .flatMap(x -> Arrays.stream(x.transactions()))
+                .flatMap(new Function<>() {
+                    private final List<TxInput> spent = new LinkedList<>();
 
-        processBlocks:
-        for (var block : chain) {
-            for (var transaction : block.transactions()) {
-                var outputs = transaction.getOutputs();
-                for (var index = 0; index < outputs.length; index++) {
-                    var output = outputs[index];
+                    @Override
+                    public Stream<? extends TxOutputReference> apply(Transaction transaction) {
+                        var unspent = Stream.<TxOutputReference>builder();
+                        var outputs = transaction.getOutputs();
+                        for (var index = 0; index < outputs.length; index++) {
+                            var output = outputs[index];
 
-                    // continue to the next output if this one is not of the sender
-                    if (!Arrays.equals(output.pubKeyHash(), fromPubKeyHash)) continue;
+                            // continue to the next output if this one is not of the sender
+                            if (!Arrays.equals(output.pubKeyHash(), fromPubKeyHash)) continue;
 
-                    var reference = new TxIoReference(transaction.getId(), index);
+                            // continue to the next output if this one is spent
+                            if (remove(transaction.getId(), index)) continue;
 
-                    // continue to the next output if this one is spent
-                    if (spent.remove(reference)) continue;
+                            // add valid to list of unspent
+                            unspent.add(new TxOutputReference(transaction.getId(), index, output));
+                        }
+                        // accumulate transaction inputs of sender
+                        for (var input : transaction.getInputs()) {
+                            if (Arrays.equals(input.getPubKey(), fromPubKey)) {
+                                spent.add(input);
+                            }
+                        }
 
-                    // add valid to list of unspent
-                    unspent.add(reference);
-                    // update total
-                    total += output.value();
-                    // if we have enough then break all the way out
-                    if (total >= amount) break processBlocks;
-                }
-                // accumulate transaction inputs of sender
-                for (var input : transaction.getInputs()) {
-                    if (Arrays.equals(input.getPubKey(), fromPubKey)) {
-                        spent.add(new TxIoReference(input.getTxId(), input.getTxOutputIndex()));
+                        return unspent.build();
                     }
-                }
-            }
-        }
-        return new UnspentResult(total, unspent);
-    }
 
+                    private boolean remove(TransactionId txId, int index) {
+                        for (var iterator = spent.iterator(); iterator.hasNext(); ) {
+                            var next = iterator.next();
+                            if (next.getTxOutputIndex() == index && next.getTxId() == txId) {
+                                iterator.remove();
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                });
+    }
 
     /**
      * 创建用于签名的交易数据副本，交易输入的 signature 和 pubKey 需要设置为null
@@ -174,15 +187,15 @@ public class Transaction {
      * @return
      */
     public Transaction trimmedCopy() {
-        var tmpTXInputs = new TXInput[getInputs().length];
+        var tmpTXInputs = new TxInput[getInputs().length];
         for (var i = 0; i < getInputs().length; i++) {
             var txInput = getInputs()[i];
-            tmpTXInputs[i] = new TXInput(txInput.getTxId(), txInput.getTxOutputIndex(), null, null);
+            tmpTXInputs[i] = new TxInput(txInput.getTxId(), txInput.getTxOutputIndex(), null, null);
         }
-        var tmpTXOutputs = new TXOutput[getOutputs().length];
+        var tmpTXOutputs = new TxOutput[getOutputs().length];
         for (var i = 0; i < getOutputs().length; i++) {
             var txOutput = getOutputs()[i];
-            tmpTXOutputs[i] = new TXOutput(txOutput.value(), txOutput.pubKeyHash());
+            tmpTXOutputs[i] = new TxOutput(txOutput.value(), txOutput.pubKeyHash());
         }
         return new Transaction(getId(), tmpTXInputs, tmpTXOutputs, getCreated());
     }
@@ -247,6 +260,7 @@ public class Transaction {
 
     /**
      * 交易的Hash
+     *
      * @return
      */
     public TransactionId getId() {
@@ -256,14 +270,14 @@ public class Transaction {
     /**
      * 交易输入
      */
-    public TXInput[] getInputs() {
+    public TxInput[] getInputs() {
         return this.inputs;
     }
 
     /**
      * 交易输出
      */
-    public TXOutput[] getOutputs() {
+    public TxOutput[] getOutputs() {
         return this.outputs;
     }
 
@@ -278,6 +292,7 @@ public class Transaction {
 
     /**
      * 交易的Hash
+     *
      * @param id
      */
     public void setId(final TransactionId id) {
@@ -316,7 +331,7 @@ public class Transaction {
         return "Transaction[txId=" + id + ", inputs=" + Arrays.deepToString(this.getInputs()) + ", outputs=" + Arrays.deepToString(this.getOutputs()) + ", createTime=" + this.getCreated() + "]";
     }
 
-    public Transaction(final TransactionId id, final TXInput[] inputs, final TXOutput[] outputs, final Instant created) {
+    public Transaction(final TransactionId id, final TxInput[] inputs, final TxOutput[] outputs, final Instant created) {
         this.id = id;
         this.inputs = inputs;
         this.outputs = outputs;

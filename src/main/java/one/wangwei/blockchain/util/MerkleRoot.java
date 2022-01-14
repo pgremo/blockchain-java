@@ -7,6 +7,7 @@ import static one.wangwei.blockchain.util.Hashes.sha256;
 
 public final class MerkleRoot {
     public static byte[] merkleRoot(Deque<byte[]> hashes) {
+        if (hashes.isEmpty()) return hash(null, null);
         if (hashes.size() % 2 != 0) hashes.add(hashes.getLast());
         return iterate(hashes).poll();
     }

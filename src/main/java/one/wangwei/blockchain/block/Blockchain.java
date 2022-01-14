@@ -1,7 +1,7 @@
 package one.wangwei.blockchain.block;
 
 import one.wangwei.blockchain.store.RocksDbBlockRepository;
-import one.wangwei.blockchain.transaction.TXInput;
+import one.wangwei.blockchain.transaction.TxInput;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.transaction.TransactionId;
 import one.wangwei.blockchain.wallet.Address;
@@ -96,7 +96,7 @@ public class Blockchain implements Iterable<Block> {
 
     public void signTransaction(Transaction tx, PrivateKey privateKey) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
         var prevTx = Arrays.stream(tx.getInputs())
-                .map(TXInput::getTxId)
+                .map(TxInput::getTxId)
                 .distinct()
                 .map(this::findTransaction)
                 .flatMap(Optional::stream)
@@ -107,7 +107,7 @@ public class Blockchain implements Iterable<Block> {
     public boolean verifyTransactions(Transaction tx) throws InvalidKeySpecException, SignatureException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException {
         if (tx.isCoinbase()) return true;
         var prevTx = Arrays.stream(tx.getInputs())
-                .map(TXInput::getTxId)
+                .map(TxInput::getTxId)
                 .distinct()
                 .map(this::findTransaction)
                 .flatMap(Optional::stream)

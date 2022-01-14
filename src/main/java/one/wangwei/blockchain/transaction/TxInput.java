@@ -12,7 +12,7 @@ import java.util.HexFormat;
  * @author wangwei
  * @date 2017/03/04
  */
-public class TXInput {
+public class TxInput {
     /**
      * 交易Id的hash值
      */
@@ -80,8 +80,8 @@ public class TXInput {
     @Override
     public boolean equals(final Object o) {
         if (o == this) return true;
-        if (!(o instanceof TXInput)) return false;
-        final TXInput other = (TXInput) o;
+        if (!(o instanceof TxInput)) return false;
+        final TxInput other = (TxInput) o;
         if (!other.canEqual(this)) return false;
         if (this.getTxOutputIndex() != other.getTxOutputIndex()) return false;
         if (!this.getTxId().equals(other.getTxId())) return false;
@@ -91,7 +91,7 @@ public class TXInput {
     }
 
     protected boolean canEqual(final Object other) {
-        return other instanceof TXInput;
+        return other instanceof TxInput;
     }
 
     @Override
@@ -115,7 +115,7 @@ public class TXInput {
         );
     }
 
-    public TXInput(final TransactionId txId, final int txOutputIndex, final byte[] signature, final byte[] pubKey) {
+    public TxInput(final TransactionId txId, final int txOutputIndex, final byte[] signature, final byte[] pubKey) {
         this.txId = txId;
         this.txOutputIndex = txOutputIndex;
         this.signature = signature;

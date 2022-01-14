@@ -4,7 +4,6 @@ import one.wangwei.blockchain.block.Blockchain;
 import one.wangwei.blockchain.pow.Pow;
 import one.wangwei.blockchain.store.RocksDbBlockRepository;
 import one.wangwei.blockchain.transaction.Transaction;
-import one.wangwei.blockchain.util.Base58Check;
 import one.wangwei.blockchain.util.Numbers;
 import one.wangwei.blockchain.wallet.Address;
 import one.wangwei.blockchain.wallet.WalletUtils;
@@ -69,15 +68,15 @@ public class CLI {
                     this.createBlockchain(storage, address.get());
                 }
                 case "getbalance" -> {
-                    var address =  Address.valueOf(cmd.getOptionValue("address"));
+                    var address = Address.valueOf(cmd.getOptionValue("address"));
                     if (address.isEmpty()) {
                         help();
                     }
                     this.getBalance(storage, address.get());
                 }
                 case "send" -> {
-                    var sendFrom =  Address.valueOf(cmd.getOptionValue("from"));
-                    var sendTo =  Address.valueOf(cmd.getOptionValue("to"));
+                    var sendFrom = Address.valueOf(cmd.getOptionValue("from"));
+                    var sendTo = Address.valueOf(cmd.getOptionValue("to"));
                     var sendAmount = Numbers.parseInteger(cmd.getOptionValue("amount"));
                     if (sendFrom.isEmpty() || sendTo.isEmpty() || sendAmount.isEmpty()) {
                         help();
@@ -121,8 +120,10 @@ public class CLI {
 
     private void getBalance(RocksDbBlockRepository storage, Address address) {
         var blockchain = Blockchain.createBlockchain(storage, address);
-        var txOutputs = Transaction.getUnspent(Integer.MAX_VALUE, blockchain, WalletUtils.getInstance().getWallet(address));
-        logger.log(INFO, () -> "Balance of '%s': %s".formatted(address, txOutputs.total()));
+        var balance = Transaction.getUnspent(blockchain, WalletUtils.getInstance().getWallet(address))
+                .mapToInt(x -> x.output().value())
+                .sum();
+        logger.log(INFO, () -> "Balance of '%s': %s".formatted(address, balance));
     }
 
     private void send(RocksDbBlockRepository storage, Address from, Address to, int amount) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException, InvalidKeySpecException {

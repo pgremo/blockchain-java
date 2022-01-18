@@ -91,12 +91,6 @@ public class Transaction {
         return getInputs().length == 1 && getInputs()[0].getTxId().value().length == 0 && getInputs()[0].getTxOutputIndex() == -1;
     }
 
-    record TxIoReference(TransactionId txId, int index) {
-    }
-
-    public record TxOutputReference(TransactionId txId, int index, TxOutput output) {
-    }
-
     public static Transaction create(Address from, Address to, int amount, Blockchain chain) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException {
         var fromWallet = WalletUtils.getInstance().getWallet(from);
         var predicate = new Predicate<TxOutputReference>() {

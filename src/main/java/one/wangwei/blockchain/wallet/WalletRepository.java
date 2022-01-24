@@ -1,6 +1,6 @@
 package one.wangwei.blockchain.wallet;
 
-import one.wangwei.blockchain.util.SerializeUtils;
+import one.wangwei.blockchain.util.ObjectMapper;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -24,25 +24,11 @@ import static javax.crypto.Cipher.ENCRYPT_MODE;
  * @author wangwei
  * @date 2018/03/21
  */
-public class WalletUtils {
-    private static final System.Logger logger = System.getLogger(WalletUtils.class.getName());
-    /**
-     * 钱包工具实例
-     */
-    private static volatile WalletUtils instance;
+public class WalletRepository {
+    private static final System.Logger logger = System.getLogger(WalletRepository.class.getName());
 
-    public static WalletUtils getInstance() {
-        if (instance == null) {
-            synchronized (WalletUtils.class) {
-                if (instance == null) {
-                    instance = new WalletUtils();
-                }
-            }
-        }
-        return instance;
-    }
-
-    private WalletUtils() {
+    public WalletRepository(ObjectMapper serializer) {
+        this.serializer = serializer;
         initWalletFile();
     }
 
@@ -58,6 +44,8 @@ public class WalletUtils {
      * 密文
      */
     private static final byte[] CIPHER_TEXT = "2oF@5sC%DNf32y!TmiZi!tG9W5rLaniD".getBytes(UTF_8);
+
+    private final ObjectMapper serializer;
 
     /**
      * 初始化钱包文件
@@ -116,7 +104,7 @@ public class WalletUtils {
             var cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(ENCRYPT_MODE, sks);
             try (var outputStream = new CipherOutputStream(new BufferedOutputStream(new FileOutputStream(WALLET_FILE)), cipher)) {
-                SerializeUtils.serializeToStream(new SealedObject(wallets, cipher), outputStream);
+                serializer.serializeToStream(new SealedObject(wallets, cipher), outputStream);
             }
         } catch (Exception e) {
             logger.log(ERROR, "Fail to save wallet to disk !", e);
@@ -135,7 +123,7 @@ public class WalletUtils {
             var cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(DECRYPT_MODE, sks);
             try (var inputStream = new CipherInputStream(new BufferedInputStream(new FileInputStream(WALLET_FILE)), cipher)) {
-                var sealedObject = SerializeUtils.deserialize(inputStream, SealedObject.class);
+                var sealedObject = serializer.deserialize(inputStream, SealedObject.class);
                 return Optional.of((Wallets) sealedObject.getObject(cipher));
             }
         } catch (Exception e) {

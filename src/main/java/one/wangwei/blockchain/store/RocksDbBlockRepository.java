@@ -2,7 +2,7 @@ package one.wangwei.blockchain.store;
 
 import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.block.BlockId;
-import one.wangwei.blockchain.util.SerializeUtils;
+import one.wangwei.blockchain.util.ObjectMapper;
 import org.rocksdb.*;
 
 import java.util.Optional;
@@ -17,11 +17,14 @@ public class RocksDbBlockRepository implements AutoCloseable {
     private static final String DB_FILE = "blockchain.db";
 
     private final TransactionDB db;
+    private final ObjectMapper serializer;
 
-    public RocksDbBlockRepository() throws RocksDBException {
+    public RocksDbBlockRepository(ObjectMapper serializer) throws RocksDBException {
         Options options = new Options();
         options.setCreateIfMissing(true);
         db = TransactionDB.open(options, new TransactionDBOptions(), DB_FILE);
+
+        this.serializer = serializer;
     }
 
     public Optional<BlockId> getLastBlockId() {
@@ -40,7 +43,7 @@ public class RocksDbBlockRepository implements AutoCloseable {
                 var key = new byte[x.length + 1];
                 key[0] = 'b';
                 arraycopy(x, 0, key, 1, x.length);
-                tx.put(key, SerializeUtils.serialize(block));
+                tx.put(key, serializer.serialize(block));
                 tx.put(new byte[]{'l'}, x);
                 return true;
             });
@@ -57,7 +60,7 @@ public class RocksDbBlockRepository implements AutoCloseable {
                 var key = new byte[raw.length + 1];
                 key[0] = 'b';
                 arraycopy(raw, 0, key, 1, raw.length);
-                return Optional.ofNullable(tx.get(new ReadOptions(), key)).map(data -> SerializeUtils.deserialize(data, Block.class));
+                return Optional.ofNullable(tx.get(new ReadOptions(), key)).map(data -> serializer.deserialize(data, Block.class));
             });
         } catch (RocksDBException e) {
             logger.log(ERROR, () -> "Fail to get block ! block=%s".formatted(id), e);

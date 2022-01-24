@@ -5,8 +5,9 @@ import one.wangwei.blockchain.pow.Pow;
 import one.wangwei.blockchain.store.RocksDbBlockRepository;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.Numbers;
+import one.wangwei.blockchain.util.ObjectMapper;
 import one.wangwei.blockchain.wallet.Address;
-import one.wangwei.blockchain.wallet.WalletUtils;
+import one.wangwei.blockchain.wallet.WalletRepository;
 import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -25,6 +26,9 @@ import static java.lang.System.Logger.Level.INFO;
 
 public class CLI {
     private static final Logger logger = getLogger(CLI.class.getName());
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final WalletRepository walletRepository = new WalletRepository(objectMapper);
     private final String[] args;
     private final Options options = new Options();
 
@@ -33,9 +37,8 @@ public class CLI {
     }
 
     static {
-        final LogManager logManager = LogManager.getLogManager();
-        try (final var is = CLI.class.getResourceAsStream("/logging.properties")) {
-            logManager.readConfiguration(is);
+        try (var is = CLI.class.getResourceAsStream("/logging.properties")) {
+            LogManager.getLogManager().readConfiguration(is);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -57,7 +60,7 @@ public class CLI {
 
     public void parse() throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException, RocksDBException, ParseException, InvalidKeySpecException, InvalidAlgorithmParameterException {
         this.validateArgs(args);
-        try (var storage = new RocksDbBlockRepository()) {
+        try (var storage = new RocksDbBlockRepository(objectMapper)) {
             var cmd = new DefaultParser().parse(options, args);
             switch (args[0]) {
                 case "createblockchain" -> {
@@ -103,12 +106,12 @@ public class CLI {
     }
 
     private void createWallet() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
-        var wallet = WalletUtils.getInstance().createWallet();
+        var wallet = walletRepository.createWallet();
         logger.log(INFO, () -> "wallet address : %s".formatted(wallet.getAddress()));
     }
 
     private void printAddresses() {
-        var addresses = WalletUtils.getInstance().getAddresses();
+        var addresses = walletRepository.getAddresses();
         if (addresses == null || addresses.isEmpty()) {
             logger.log(INFO, "There isn't address");
             return;
@@ -120,7 +123,7 @@ public class CLI {
 
     private void getBalance(RocksDbBlockRepository storage, Address address) {
         var blockchain = Blockchain.createBlockchain(storage, address);
-        var balance = Transaction.getUnspent(blockchain, WalletUtils.getInstance().getWallet(address))
+        var balance = Transaction.getUnspent(blockchain, walletRepository.getWallet(address))
                 .mapToInt(x -> x.output().value())
                 .sum();
         logger.log(INFO, () -> "Balance of '%s': %s".formatted(address, balance));
@@ -133,7 +136,7 @@ public class CLI {
         }
         var blockchain = Blockchain.createBlockchain(storage, from);
         // 新交易
-        var transaction = Transaction.create(from, to, amount, blockchain);
+        var transaction = Transaction.create(from, to, amount, blockchain, walletRepository);
         // 奖励
         var rewardTx = Transaction.newCoinbaseTX(from, "");
         blockchain.mineBlock(new Transaction[]{transaction, rewardTx}).orElseThrow();

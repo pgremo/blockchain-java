@@ -6,7 +6,7 @@ import one.wangwei.blockchain.util.Hashes;
 import one.wangwei.blockchain.util.Numbers;
 import one.wangwei.blockchain.wallet.Address;
 import one.wangwei.blockchain.wallet.Wallet;
-import one.wangwei.blockchain.wallet.WalletUtils;
+import one.wangwei.blockchain.wallet.WalletRepository;
 
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
@@ -91,8 +91,8 @@ public class Transaction {
         return getInputs().length == 1 && getInputs()[0].getTxId().value().length == 0 && getInputs()[0].getTxOutputIndex() == -1;
     }
 
-    public static Transaction create(Address from, Address to, int amount, Blockchain chain) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException {
-        var fromWallet = WalletUtils.getInstance().getWallet(from);
+    public static Transaction create(Address from, Address to, int amount, Blockchain chain, WalletRepository walletRepository) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException {
+        var fromWallet = walletRepository.getWallet(from);
         var predicate = new Predicate<TxOutputReference>() {
             private int total;
 
@@ -111,7 +111,7 @@ public class Transaction {
                 .map(x -> new TxInput(x.txId(), x.index(), null, fromWallet.publicKey().getEncoded()))
                 .toArray(TxInput[]::new);
 
-        var toWallet = WalletUtils.getInstance().getWallet(to);
+        var toWallet = walletRepository.getWallet(to);
         var toPubKey = toWallet.publicKey().getEncoded();
         var toPubKeyHash = BtcAddressUtils.ripeMD160Hash(toPubKey);
         var first = new TxOutput(amount, toPubKeyHash);

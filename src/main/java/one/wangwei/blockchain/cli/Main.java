@@ -7,11 +7,14 @@ import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.ObjectMapper;
 import one.wangwei.blockchain.wallet.Address;
 import one.wangwei.blockchain.wallet.WalletRepository;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.rocksdb.RocksDBException;
 import picocli.CommandLine;
 
+import java.io.IOException;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
+import java.util.logging.LogManager;
 
 import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.Logger.Level.INFO;
@@ -28,6 +31,18 @@ public class Main {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final WalletRepository walletRepository = new WalletRepository(objectMapper);
+
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
+
+    static {
+        try (var is = Main.class.getResourceAsStream("/logging.properties")) {
+            LogManager.getLogManager().readConfiguration(is);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Command(
             description = "Create a blockchain",

@@ -70,7 +70,7 @@ public class Transaction {
      * @return
      */
     public static Transaction newCoinbaseTX(Address to, String data) {
-        if (data.isBlank()) data = String.format("Reward to '%s'", to);
+        if (data.isBlank()) data = "Reward to '%s'".formatted(to);
         // 创建交易输入
         var txInput = new TxInput(new TransactionId(new byte[0]), -1, null, data.getBytes());
         // 创建交易输出

@@ -6,69 +6,32 @@ import one.wangwei.blockchain.util.Numbers;
 import java.util.Arrays;
 import java.util.HexFormat;
 
-/**
- * 交易输入
- *
- * @author wangwei
- * @date 2017/03/04
- */
 public class TxInput {
-    /**
-     * 交易Id的hash值
-     */
-    private final TransactionId txId;
-    /**
-     * 交易输出索引
-     */
+    private final Transaction.Id txId;
     private final int txOutputIndex;
-    /**
-     * 签名
-     */
     private byte[] signature;
-    /**
-     * 公钥
-     */
     private byte[] pubKey;
 
-    /**
-     * 交易Id的hash值
-     * @return
-     */
-    public TransactionId getTxId() {
+    public Transaction.Id getTxId() {
         return txId;
     }
 
-    /**
-     * 交易输出索引
-     */
     public int getTxOutputIndex() {
         return txOutputIndex;
     }
 
-    /**
-     * 签名
-     */
     public byte[] getSignature() {
         return signature;
     }
 
-    /**
-     * 公钥
-     */
     public byte[] getPubKey() {
         return pubKey;
     }
 
-    /**
-     * 签名
-     */
     public void setSignature(final byte[] signature) {
         this.signature = signature;
     }
 
-    /**
-     * 公钥
-     */
     public void setPubKey(final byte[] pubKey) {
         this.pubKey = pubKey;
     }
@@ -80,14 +43,12 @@ public class TxInput {
     @Override
     public boolean equals(final Object o) {
         if (o == this) return true;
-        if (!(o instanceof TxInput)) return false;
-        final TxInput other = (TxInput) o;
+        if (!(o instanceof final TxInput other)) return false;
         if (!other.canEqual(this)) return false;
         if (this.getTxOutputIndex() != other.getTxOutputIndex()) return false;
         if (!this.getTxId().equals(other.getTxId())) return false;
         if (!Arrays.equals(this.getSignature(), other.getSignature())) return false;
-        if (!Arrays.equals(this.getPubKey(), other.getPubKey())) return false;
-        return true;
+        return Arrays.equals(this.getPubKey(), other.getPubKey());
     }
 
     protected boolean canEqual(final Object other) {
@@ -115,7 +76,7 @@ public class TxInput {
         );
     }
 
-    public TxInput(final TransactionId txId, final int txOutputIndex, final byte[] signature, final byte[] pubKey) {
+    public TxInput(final Transaction.Id txId, final int txOutputIndex, final byte[] signature, final byte[] pubKey) {
         this.txId = txId;
         this.txOutputIndex = txOutputIndex;
         this.signature = signature;

@@ -15,11 +15,6 @@ import picocli.CommandLine;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 
-/**
- * 测试
- *
- * @author wangwei
- */
 public class BlockchainTest {
     static {
         Security.addProvider(new BouncyCastleProvider());

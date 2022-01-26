@@ -7,9 +7,7 @@ import com.esotericsoftware.kryo.serializers.RecordSerializer;
 import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy;
 import com.esotericsoftware.kryo.util.Pool;
 import one.wangwei.blockchain.block.Block;
-import one.wangwei.blockchain.block.BlockId;
 import one.wangwei.blockchain.transaction.Transaction;
-import one.wangwei.blockchain.transaction.TransactionId;
 import one.wangwei.blockchain.transaction.TxInput;
 import one.wangwei.blockchain.transaction.TxOutput;
 import org.objenesis.strategy.StdInstantiatorStrategy;
@@ -37,14 +35,14 @@ public class ObjectMapper {
 
             kryo.register(ArrayList.class);
             kryo.register(Block.class);
-            kryo.register(BlockId.class);
+            kryo.register(Block.Id.class);
             kryo.register(HashMap.class);
             kryo.register(Instant.class);
             kryo.register(List.class);
             kryo.register(SealedObject.class, new JavaSerializer());
             kryo.register(Transaction.class);
             kryo.register(Transaction[].class);
-            kryo.register(TransactionId.class);
+            kryo.register(Transaction.Id.class);
             kryo.register(TreeMap.class, new JavaSerializer());
             kryo.register(TxInput.class);
             kryo.register(TxInput[].class);

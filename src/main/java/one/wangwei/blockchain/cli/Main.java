@@ -83,7 +83,7 @@ public class Main {
     void send(
             @Option(names = {"--to"}, converter = AddressTypeConverter.class) Address to,
             @Option(names = {"--from"}, converter = AddressTypeConverter.class) Address from,
-            @Option(names = {"--amount"}, converter = AmountTypeConverter.class) int amount
+            @Option(names = {"--amount"}, converter = NaturalNumberTypeConverter.class) int amount
     ) throws RocksDBException, SignatureException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, InvalidKeySpecException {
         try (var storage = new RocksDbBlockRepository(objectMapper)) {
             if (amount < 1) {

@@ -12,10 +12,7 @@ import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -24,36 +21,13 @@ import java.util.stream.StreamSupport;
 import static java.util.stream.Collectors.toCollection;
 import static one.wangwei.blockchain.util.MerkleRoot.merkleRoot;
 
-/**
- * 交易
- *
- * @author wangwei
- * @date 2017/03/04
- */
 public class Transaction {
     private static final int SUBSIDY = 10;
-    /**
-     * 交易的Hash
-     */
-    private TransactionId id;
-    /**
-     * 交易输入
-     */
+    private Id id;
     private final TxInput[] inputs;
-    /**
-     * 交易输出
-     */
     private final TxOutput[] outputs;
-    /**
-     * 创建日期
-     */
     private final Instant created;
 
-    /**
-     * 计算交易信息的Hash值
-     *
-     * @return
-     */
     public byte[] hash() {
         return Hashes.sha256(
                 merkleRoot(Arrays.stream(getInputs()).map(TxInput::hash).collect(toCollection(LinkedList::new))),
@@ -62,31 +36,15 @@ public class Transaction {
         );
     }
 
-    /**
-     * 创建CoinBase交易
-     *
-     * @param to   收账的钱包地址
-     * @param data 解锁脚本数据
-     * @return
-     */
     public static Transaction newCoinbaseTX(Address to, String data) {
         if (data.isBlank()) data = "Reward to '%s'".formatted(to);
-        // 创建交易输入
-        var txInput = new TxInput(new TransactionId(new byte[0]), -1, null, data.getBytes());
-        // 创建交易输出
+        var txInput = new TxInput(new Id(new byte[0]), -1, null, data.getBytes());
         var txOutput = TxOutput.newTXOutput(SUBSIDY, to);
-        // 创建交易
         var tx = new Transaction(null, new TxInput[]{txInput}, new TxOutput[]{txOutput}, Instant.now());
-        // 设置交易ID
-        tx.setId(new TransactionId(tx.hash()));
+        tx.setId(new Id(tx.hash()));
         return tx;
     }
 
-    /**
-     * 是否为 Coinbase 交易
-     *
-     * @return
-     */
     public boolean isCoinbase() {
         return getInputs().length == 1 && getInputs()[0].getTxId().value().length == 0 && getInputs()[0].getTxOutputIndex() == -1;
     }
@@ -120,7 +78,7 @@ public class Transaction {
                 new TxOutput[]{first};
 
         var tx = new Transaction(null, inputs, outputs, Instant.now());
-        tx.setId(new TransactionId(tx.hash()));
+        tx.setId(new Id(tx.hash()));
 
         chain.signTransaction(tx, fromWallet.privateKey());
 
@@ -162,7 +120,7 @@ public class Transaction {
                         return unspent.build();
                     }
 
-                    private boolean remove(TransactionId txId, int index) {
+                    private boolean remove(Id txId, int index) {
                         for (var iterator = spent.iterator(); iterator.hasNext(); ) {
                             var next = iterator.next();
                             if (next.getTxOutputIndex() == index && next.getTxId() == txId) {
@@ -175,11 +133,6 @@ public class Transaction {
                 });
     }
 
-    /**
-     * 创建用于签名的交易数据副本，交易输入的 signature 和 pubKey 需要设置为null
-     *
-     * @return
-     */
     public Transaction trimmedCopy() {
         var tmpTXInputs = new TxInput[getInputs().length];
         for (var i = 0; i < getInputs().length; i++) {
@@ -194,13 +147,7 @@ public class Transaction {
         return new Transaction(getId(), tmpTXInputs, tmpTXOutputs, getCreated());
     }
 
-    /**
-     * 签名
-     *
-     * @param privateKey 私钥
-     * @param prevTxMap  前面多笔交易集合
-     */
-    public void sign(PrivateKey privateKey, Map<TransactionId, Transaction> prevTxMap) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, NoSuchProviderException {
+    public void sign(PrivateKey privateKey, Map<Id, Transaction> prevTxMap) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, NoSuchProviderException {
         if (isCoinbase()) return;
         for (var txInput : getInputs()) {
             if (!prevTxMap.containsKey(txInput.getTxId()))
@@ -221,13 +168,7 @@ public class Transaction {
         }
     }
 
-    /**
-     * 验证交易信息
-     *
-     * @param prevTxMap 前面多笔交易集合
-     * @return
-     */
-    public boolean verify(Map<TransactionId, Transaction> prevTxMap) throws InvalidKeySpecException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, NoSuchProviderException {
+    public boolean verify(Map<Id, Transaction> prevTxMap) throws InvalidKeySpecException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, NoSuchProviderException {
         if (this.isCoinbase()) return true;
         for (var txInput : getInputs()) {
             if (!prevTxMap.containsKey(txInput.getTxId()))
@@ -252,44 +193,23 @@ public class Transaction {
         return true;
     }
 
-    /**
-     * 交易的Hash
-     *
-     * @return
-     */
-    public TransactionId getId() {
+    public Id getId() {
         return this.id;
     }
 
-    /**
-     * 交易输入
-     */
     public TxInput[] getInputs() {
         return this.inputs;
     }
 
-    /**
-     * 交易输出
-     */
     public TxOutput[] getOutputs() {
         return this.outputs;
     }
 
-    /**
-     * 创建日期
-     *
-     * @return
-     */
     public Instant getCreated() {
         return this.created;
     }
 
-    /**
-     * 交易的Hash
-     *
-     * @param id
-     */
-    public void setId(final TransactionId id) {
+    public void setId(final Id id) {
         this.id = id;
     }
 
@@ -325,10 +245,30 @@ public class Transaction {
         return "Transaction[txId=" + id + ", inputs=" + Arrays.deepToString(this.getInputs()) + ", outputs=" + Arrays.deepToString(this.getOutputs()) + ", createTime=" + this.getCreated() + "]";
     }
 
-    public Transaction(final TransactionId id, final TxInput[] inputs, final TxOutput[] outputs, final Instant created) {
+    public Transaction(final Id id, final TxInput[] inputs, final TxOutput[] outputs, final Instant created) {
         this.id = id;
         this.inputs = inputs;
         this.outputs = outputs;
         this.created = created;
+    }
+
+    public record Id(byte[] value) {
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Id that = (Id) o;
+            return Arrays.equals(value, that.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(value);
+        }
+
+        @Override
+        public String toString() {
+            return HexFormat.of().formatHex(value);
+        }
     }
 }

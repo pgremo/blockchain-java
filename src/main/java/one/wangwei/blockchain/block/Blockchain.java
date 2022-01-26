@@ -3,7 +3,6 @@ package one.wangwei.blockchain.block;
 import one.wangwei.blockchain.store.RocksDbBlockRepository;
 import one.wangwei.blockchain.transaction.TxInput;
 import one.wangwei.blockchain.transaction.Transaction;
-import one.wangwei.blockchain.transaction.TransactionId;
 import one.wangwei.blockchain.wallet.Address;
 
 import java.security.*;
@@ -60,15 +59,15 @@ public class Blockchain implements Iterable<Block> {
 
     public static class BlockIterator implements Iterator<Block> {
         private final RocksDbBlockRepository storage;
-        private BlockId current;
+        private Block.Id current;
 
-        private BlockIterator(RocksDbBlockRepository storage, BlockId currentBlockHash) {
+        private BlockIterator(RocksDbBlockRepository storage, Block.Id currentBlockHash) {
             this.storage = storage;
             this.current = currentBlockHash;
         }
 
         public boolean hasNext() {
-            return !current.equals(BlockId.Null);
+            return !current.equals(Block.Id.Null);
         }
 
         public Block next() {
@@ -87,7 +86,7 @@ public class Blockchain implements Iterable<Block> {
         return StreamSupport.stream(spliterator(), false);
     }
 
-    private Optional<Transaction> findTransaction(TransactionId txId) {
+    private Optional<Transaction> findTransaction(Transaction.Id txId) {
         return stream()
                 .flatMap(x -> Arrays.stream(x.transactions()))
                 .filter(x -> x.getId().equals(txId))
@@ -115,7 +114,7 @@ public class Blockchain implements Iterable<Block> {
         return tx.verify(prevTx);
     }
 
-    public Optional<BlockId> getLastBlockHash() {
+    public Optional<Block.Id> getLastBlockHash() {
         return storage.getLastBlockId();
     }
 }

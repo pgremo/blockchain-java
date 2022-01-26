@@ -1,10 +1,3 @@
-/*
- * Bitcoin cryptography library
- * Copyright (c) Project Nayuki
- *
- * https://www.nayuki.io/page/bitcoin-cryptography-library
- * https://github.com/nayuki/Bitcoin-Cryptography-Library
- */
 package one.wangwei.blockchain.util;
 
 
@@ -14,27 +7,12 @@ import java.math.BigInteger;
 import java.util.Arrays;
 import java.util.Optional;
 
-/**
- * Base58 转化工具
- */
 public final class Base58Check {
 
-    /**
-     * 添加校验码并转化为 Base58 字符串
-     *
-     * @param data
-     * @return
-     */
     public static String encodeChecked(byte[] data) {
         return encode(addCheck(data));
     }
 
-    /**
-     * 转化为 Base58 字符串
-     *
-     * @param data
-     * @return
-     */
     public static String encode(byte[] data) {
         // Convert to base-58 string
         var sb = new StringBuilder();
@@ -53,12 +31,6 @@ public final class Base58Check {
     }
 
 
-    /**
-     * 添加校验码并返回待有校验码的原生数据
-     *
-     * @param data
-     * @return
-     */
     private static byte[] addCheck(byte[] data) {
         try {
             var hash = Arrays.copyOf(BtcAddressUtils.doubleHash(data), 4);
@@ -72,13 +44,6 @@ public final class Base58Check {
     }
 
 
-    /**
-     * 将 Base58Check 字符串转化为 byte 数组，并校验其校验码
-     * 返回的byte数组带有版本号，但不带有校验码
-     *
-     * @param s
-     * @return
-     */
     public static byte[] decodeChecked(String s) {
         return valueOf(s).orElseThrow(() -> new IllegalArgumentException("Checksum mismatch"));
     }
@@ -92,12 +57,6 @@ public final class Base58Check {
     }
 
 
-    /**
-     * 将 Base58Check 字符串反转为 byte 数组
-     *
-     * @param s
-     * @return
-     */
     static byte[] decode(String s) {
         // Parse base-58 string
         var num = BigInteger.ZERO;

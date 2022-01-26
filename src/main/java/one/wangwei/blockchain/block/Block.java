@@ -6,20 +6,21 @@ import one.wangwei.blockchain.transaction.Transaction;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.Optional;
 
-public record Block(BlockId id, BlockId previousId, Transaction[] transactions, Instant timeStamp, long nonce) {
+public record Block(Id id, Id previousId, Transaction[] transactions, Instant timeStamp, long nonce) {
 
     public static Optional<Block> newGenesisBlock(Transaction coinbase) {
-        return Block.newBlock(BlockId.Null, coinbase);
+        return Block.newBlock(Id.Null, coinbase);
     }
 
-    public static Optional<Block> newBlock(BlockId previousId, Transaction... transactions) {
+    public static Optional<Block> newBlock(Id previousId, Transaction... transactions) {
         var now = Instant.now();
         var request = new PowRequest(previousId, transactions, now);
         var pow = new Pow();
         return pow.run(request).map(x -> new Block(
-                new BlockId(x.hash()),
+                new Id(x.hash()),
                 previousId,
                 transactions,
                 now,
@@ -36,5 +37,27 @@ public record Block(BlockId id, BlockId previousId, Transaction[] transactions, 
                 ", timeStamp=" + timeStamp +
                 ", nonce=" + nonce +
                 ']';
+    }
+
+    public record Id(byte[] value) {
+        public static final Id Null = new Id(new byte[32]);
+
+        @Override
+        public String toString() {
+            return HexFormat.of().formatHex(value);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Id id = (Id) o;
+            return Arrays.equals(value, id.value);
+        }
+
+        @Override
+        public int hashCode() {
+            return Arrays.hashCode(value);
+        }
     }
 }

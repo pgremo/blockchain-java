@@ -18,12 +18,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static javax.crypto.Cipher.DECRYPT_MODE;
 import static javax.crypto.Cipher.ENCRYPT_MODE;
 
-/**
- * 钱包工具类
- *
- * @author wangwei
- * @date 2018/03/21
- */
 public class WalletRepository {
     private static final System.Logger logger = System.getLogger(WalletRepository.class.getName());
 
@@ -32,24 +26,12 @@ public class WalletRepository {
         initWalletFile();
     }
 
-    /**
-     * 钱包文件
-     */
     private static final String WALLET_FILE = "wallet.dat";
-    /**
-     * 加密算法
-     */
     private static final String ALGORITHM = "AES";
-    /**
-     * 密文
-     */
     private static final byte[] CIPHER_TEXT = "2oF@5sC%DNf32y!TmiZi!tG9W5rLaniD".getBytes(UTF_8);
 
     private final ObjectMapper serializer;
 
-    /**
-     * 初始化钱包文件
-     */
     private void initWalletFile() {
         var file = new File(WALLET_FILE);
         if (file.exists()) {
@@ -59,30 +41,14 @@ public class WalletRepository {
         }
     }
 
-    /**
-     * 获取所有的钱包地址
-     *
-     * @return
-     */
     public Set<Address> getAddresses() {
         return loadFromDisk().orElseThrow().getAddresses();
     }
 
-    /**
-     * 获取钱包数据
-     *
-     * @param address 钱包地址
-     * @return
-     */
     public Wallet getWallet(Address address) {
         return loadFromDisk().orElseThrow().getWallet(address);
     }
 
-    /**
-     * 创建钱包
-     *
-     * @return
-     */
     public Wallet createWallet() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
         var wallet = Wallet.createWallet();
         var wallets = loadFromDisk().orElse(new Wallets());
@@ -91,9 +57,6 @@ public class WalletRepository {
         return wallet;
     }
 
-    /**
-     * 保存钱包数据
-     */
     private void saveToDisk(Wallets wallets) {
         try {
             if (wallets == null) {
@@ -112,11 +75,6 @@ public class WalletRepository {
         }
     }
 
-    /**
-     * 加载钱包数据
-     *
-     * @return
-     */
     private Optional<Wallets> loadFromDisk() {
         try {
             var sks = new SecretKeySpec(CIPHER_TEXT, ALGORITHM);
@@ -133,38 +91,19 @@ public class WalletRepository {
     }
 
 
-    /**
-     * 钱包存储对象
-     */
     public static class Wallets implements Serializable {
         @Serial
         private static final long serialVersionUID = -2542070981569243131L;
         private final Map<Address, Wallet> walletMap = new HashMap<>();
 
-        /**
-         * 添加钱包
-         *
-         * @param wallet
-         */
         private void addWallet(Wallet wallet) {
             this.walletMap.put(wallet.getAddress(), wallet);
         }
 
-        /**
-         * 获取所有的钱包地址
-         *
-         * @return
-         */
         Set<Address> getAddresses() {
             return walletMap.keySet();
         }
 
-        /**
-         * 获取钱包数据
-         *
-         * @param address 钱包地址
-         * @return
-         */
         Wallet getWallet(Address address) {
             var wallet = walletMap.get(address);
             if (wallet == null) {

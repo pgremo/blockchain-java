@@ -1,7 +1,6 @@
 package one.wangwei.blockchain.store;
 
 import one.wangwei.blockchain.block.Block;
-import one.wangwei.blockchain.block.BlockId;
 import one.wangwei.blockchain.util.ObjectMapper;
 import org.rocksdb.*;
 
@@ -27,9 +26,9 @@ public class RocksDbBlockRepository implements AutoCloseable {
         this.serializer = serializer;
     }
 
-    public Optional<BlockId> getLastBlockId() {
+    public Optional<Block.Id> getLastBlockId() {
         try {
-            return withTransaction(tx -> Optional.ofNullable(tx.get(new ReadOptions(), new byte[]{'l'})).map(BlockId::new));
+            return withTransaction(tx -> Optional.ofNullable(tx.get(new ReadOptions(), new byte[]{'l'})).map(Block.Id::new));
         } catch (RocksDBException e) {
             logger.log(ERROR, "Fail to get last block id !", e);
             throw new RuntimeException("Fail to get last block id !", e);
@@ -53,7 +52,7 @@ public class RocksDbBlockRepository implements AutoCloseable {
         }
     }
 
-    public Optional<Block> getBlock(BlockId id) {
+    public Optional<Block> getBlock(Block.Id id) {
         var raw = id.value();
         try {
             return withTransaction(tx -> {

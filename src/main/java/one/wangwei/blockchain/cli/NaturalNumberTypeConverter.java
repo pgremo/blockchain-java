@@ -2,7 +2,7 @@ package one.wangwei.blockchain.cli;
 
 import picocli.CommandLine;
 
-public class AmountTypeConverter implements CommandLine.ITypeConverter<Integer> {
+public class NaturalNumberTypeConverter implements CommandLine.ITypeConverter<Integer> {
     @Override
     public Integer convert(String value) {
         var result = Integer.parseInt(value);

@@ -1,4 +1,4 @@
 package one.wangwei.blockchain.transaction;
 
-public record TxOutputReference(TransactionId txId, int index, TxOutput output) {
+public record TxOutputReference(Transaction.Id txId, int index, TxOutput output) {
 }

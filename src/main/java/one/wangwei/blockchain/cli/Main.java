@@ -133,9 +133,7 @@ public class Main {
     )
     void printchain() throws RocksDBException {
         try (var storage = new RocksDbBlockRepository(objectMapper)) {
-            for (var block : new Blockchain(storage)) {
-                logger.log(INFO, () -> "%s, valid = %s".formatted(block, Pow.validate(block)));
-            }
+            new Blockchain(storage).stream().forEach(x -> logger.log(INFO, () -> "%s, valid = %s".formatted(x, Pow.validate(x))));
         }
     }
 

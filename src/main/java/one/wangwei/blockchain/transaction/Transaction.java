@@ -89,7 +89,7 @@ public class Transaction {
         var fromPubKey = fromWallet.publicKey().getEncoded();
         var fromPubKeyHash = BtcAddressUtils.ripeMD160Hash(fromPubKey);
 
-        return StreamSupport.stream(chain.spliterator(), false)
+        return chain.stream()
                 .flatMap(x -> Arrays.stream(x.transactions()))
                 .flatMap(new Function<>() {
                     private final List<TxInput> spent = new LinkedList<>();

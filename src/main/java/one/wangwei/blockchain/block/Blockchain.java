@@ -1,24 +1,24 @@
 package one.wangwei.blockchain.block;
 
 import one.wangwei.blockchain.store.RocksDbBlockRepository;
-import one.wangwei.blockchain.transaction.TxInput;
 import one.wangwei.blockchain.transaction.Transaction;
+import one.wangwei.blockchain.transaction.TxInput;
 import one.wangwei.blockchain.wallet.Address;
 
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import static java.lang.System.Logger;
 import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.getLogger;
-import static java.util.Collections.emptyIterator;
+import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toMap;
 
-public class Blockchain implements Iterable<Block> {
+public class Blockchain {
     private static final Logger logger = getLogger(Blockchain.class.getName());
 
     private final RocksDbBlockRepository storage;
@@ -57,33 +57,14 @@ public class Blockchain implements Iterable<Block> {
         storage.appendBlock(block);
     }
 
-    public static class BlockIterator implements Iterator<Block> {
-        private final RocksDbBlockRepository storage;
-        private Block.Id current;
-
-        private BlockIterator(RocksDbBlockRepository storage, Block.Id currentBlockHash) {
-            this.storage = storage;
-            this.current = currentBlockHash;
-        }
-
-        public boolean hasNext() {
-            return !current.equals(Block.Id.Null);
-        }
-
-        public Block next() {
-            var result = storage.getBlock(current)
-                    .orElseThrow(NoSuchElementException::new);
-            current = result.previousId();
-            return result;
-        }
-    }
-
-    public Iterator<Block> iterator() {
-        return storage.getLastBlockId().map(x -> (Iterator<Block>) new BlockIterator(storage, x)).orElse(emptyIterator());
-    }
-
     public Stream<Block> stream() {
-        return StreamSupport.stream(spliterator(), false);
+        return Stream
+                .iterate(
+                        storage.getLastBlockId().flatMap(storage::getBlock),
+                        not(Optional::isEmpty),
+                        x -> x.flatMap(y -> storage.getBlock(y.previousId()))
+                )
+                .flatMap(Optional::stream);
     }
 
     private Optional<Transaction> findTransaction(Transaction.Id txId) {

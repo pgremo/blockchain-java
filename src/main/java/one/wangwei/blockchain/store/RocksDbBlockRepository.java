@@ -19,7 +19,7 @@ public class RocksDbBlockRepository implements AutoCloseable {
     private final ObjectMapper serializer;
 
     public RocksDbBlockRepository(ObjectMapper serializer) throws RocksDBException {
-        Options options = new Options();
+        var options = new Options();
         options.setCreateIfMissing(true);
         db = TransactionDB.open(options, new TransactionDBOptions(), DB_FILE);
 

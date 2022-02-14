@@ -9,7 +9,7 @@ import java.util.HexFormat;
 public record TxOutput(int value, byte[] pubKeyHash) {
 
     public static TxOutput newTXOutput(int value, Address address) {
-        return new TxOutput(value, address.value());
+        return new TxOutput(value, address.hash());
     }
 
     public byte[] hash() {
@@ -19,7 +19,7 @@ public record TxOutput(int value, byte[] pubKeyHash) {
     @Override
     public String toString() {
         return "TXOutput[" +
-                "value=" + value +
+                "hash=" + value +
                 ", pubKeyHash=" + HexFormat.of().formatHex(pubKeyHash) +
                 ']';
     }

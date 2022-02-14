@@ -23,7 +23,7 @@ public final class Base58Check {
             num = quotrem[0];
         }
 
-        // Add '1' characters for leading 0-value bytes
+        // Add '1' characters for leading 0-hash bytes
         for (var i = 0; i < data.length && data[i] == 0; i++) {
             sb.append(ALPHABET.charAt(0));
         }
@@ -74,7 +74,7 @@ public final class Base58Check {
             b = Arrays.copyOfRange(b, 1, b.length);
         }
         try {
-            // Convert leading '1' characters to leading 0-value bytes
+            // Convert leading '1' characters to leading 0-hash bytes
             var buf = new ByteArrayOutputStream();
             for (var i = 0; i < s.length() && s.charAt(i) == ALPHABET.charAt(0); i++) {
                 buf.write(0);

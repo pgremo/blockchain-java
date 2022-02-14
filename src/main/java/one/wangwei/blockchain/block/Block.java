@@ -11,11 +11,11 @@ import java.util.Optional;
 
 public record Block(Id id, Id previousId, Transaction[] transactions, Instant timeStamp, long nonce) {
 
-    public static Optional<Block> newGenesisBlock(Transaction coinbase) {
-        return Block.newBlock(Id.Null, coinbase);
+    public static Optional<Block> createGenesisBlock(Transaction coinbase) {
+        return Block.createBlock(Id.Null, coinbase);
     }
 
-    public static Optional<Block> newBlock(Id previousId, Transaction... transactions) {
+    public static Optional<Block> createBlock(Id previousId, Transaction... transactions) {
         var now = Instant.now();
         var request = new PowRequest(previousId, transactions, now);
         var pow = new Pow();

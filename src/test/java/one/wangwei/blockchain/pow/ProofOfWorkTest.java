@@ -21,8 +21,8 @@ public class ProofOfWorkTest {
     public void shouldMatch() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
         var wallet = Wallet.createWallet();
         var data = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
-        var tx = Transaction.newCoinbaseTX(wallet.getAddress(), data);
-        var block = Block.newGenesisBlock(tx).orElseThrow();
+        var tx = Transaction.createCoinbaseTX(wallet.getAddress(), data);
+        var block = Block.createGenesisBlock(tx).orElseThrow();
         Assert.assertTrue(Pow.validate(block));
     }
 }

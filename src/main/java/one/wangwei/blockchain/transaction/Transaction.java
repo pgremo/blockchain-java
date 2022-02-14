@@ -8,6 +8,10 @@ import one.wangwei.blockchain.wallet.Address;
 import one.wangwei.blockchain.wallet.Wallet;
 import one.wangwei.blockchain.wallet.WalletRepository;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import java.io.IOException;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
@@ -16,7 +20,6 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 
 import static java.util.stream.Collectors.toCollection;
 import static one.wangwei.blockchain.util.MerkleRoot.merkleRoot;
@@ -36,7 +39,7 @@ public class Transaction {
         );
     }
 
-    public static Transaction newCoinbaseTX(Address to, String data) {
+    public static Transaction createCoinbaseTX(Address to, String data) {
         if (data.isBlank()) data = "Reward to '%s'".formatted(to);
         var txInput = new TxInput(new Id(new byte[0]), -1, null, data.getBytes());
         var txOutput = TxOutput.newTXOutput(SUBSIDY, to);
@@ -49,7 +52,7 @@ public class Transaction {
         return getInputs().length == 1 && getInputs()[0].getTxId().value().length == 0 && getInputs()[0].getTxOutputIndex() == -1;
     }
 
-    public static Transaction create(Address from, Address to, int amount, Blockchain chain, WalletRepository walletRepository) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException {
+    public static Transaction createTransaction(Address from, Address to, int amount, Blockchain chain, WalletRepository walletRepository) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, NoSuchPaddingException, IllegalBlockSizeException, IOException, BadPaddingException, ClassNotFoundException {
         var fromWallet = walletRepository.getWallet(from);
         var predicate = new Predicate<TxOutputReference>() {
             private int total;

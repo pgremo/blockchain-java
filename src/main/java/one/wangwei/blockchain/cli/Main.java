@@ -11,14 +11,18 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.rocksdb.RocksDBException;
 import picocli.CommandLine;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.util.logging.LogManager;
 
-import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.Logger.Level.INFO;
 import static java.lang.System.getLogger;
+import static one.wangwei.blockchain.block.Blockchain.createBlockchain;
+import static one.wangwei.blockchain.transaction.Transaction.*;
 import static picocli.CommandLine.*;
 
 @Command(
@@ -44,31 +48,32 @@ public class Main {
         }
     }
 
+    public Main() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, IOException, BadPaddingException, InvalidKeyException, ClassNotFoundException {
+    }
+
     @Command(
             description = "Create a blockchain",
-            mixinStandardHelpOptions = true,
-            version = "4.1.3"
+            mixinStandardHelpOptions = true
     )
     void createblockchain(
             @Option(names = {"--address"}, converter = AddressTypeConverter.class) Address address
     ) throws RocksDBException {
         try (var storage = new RocksDbBlockRepository(objectMapper)) {
-            Blockchain.createBlockchain(storage, address);
+            createBlockchain(storage, address);
             logger.log(INFO, "Done!");
         }
     }
 
     @Command(
             description = "Get balance for an address",
-            mixinStandardHelpOptions = true,
-            version = "4.1.3"
+            mixinStandardHelpOptions = true
     )
     void getbalance(
             @Option(names = {"--address"}, converter = AddressTypeConverter.class) Address address
-    ) throws RocksDBException {
+    ) throws RocksDBException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, IOException, BadPaddingException, InvalidKeyException, ClassNotFoundException {
         try (var storage = new RocksDbBlockRepository(objectMapper)) {
-            var blockchain = Blockchain.createBlockchain(storage, address);
-            var balance = Transaction.getUnspent(blockchain, walletRepository.getWallet(address))
+            var blockchain = createBlockchain(storage, address);
+            var balance = getUnspent(blockchain, walletRepository.getWallet(address))
                     .mapToInt(x -> x.output().value())
                     .sum();
             logger.log(INFO, () -> "Balance of '%s': %s".formatted(address, balance));
@@ -77,24 +82,17 @@ public class Main {
 
     @Command(
             description = "Send an amount from one address to another",
-            mixinStandardHelpOptions = true,
-            version = "4.1.3"
+            mixinStandardHelpOptions = true
     )
     void send(
             @Option(names = {"--to"}, converter = AddressTypeConverter.class) Address to,
             @Option(names = {"--from"}, converter = AddressTypeConverter.class) Address from,
             @Option(names = {"--amount"}, converter = NaturalNumberTypeConverter.class) int amount
-    ) throws RocksDBException, SignatureException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, InvalidKeySpecException {
+    ) throws RocksDBException, SignatureException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, InvalidKeySpecException, NoSuchPaddingException, IllegalBlockSizeException, IOException, BadPaddingException, ClassNotFoundException {
         try (var storage = new RocksDbBlockRepository(objectMapper)) {
-            if (amount < 1) {
-                logger.log(ERROR, "amount invalid ! amount=%s".formatted(amount));
-                throw new RuntimeException("amount invalid ! amount=" + amount);
-            }
-            var blockchain = Blockchain.createBlockchain(storage, from);
-            // 新交易
-            var transaction = Transaction.create(from, to, amount, blockchain, walletRepository);
-            // 奖励
-            var rewardTx = Transaction.newCoinbaseTX(from, "");
+            var blockchain = createBlockchain(storage, from);
+            var transaction = createTransaction(from, to, amount, blockchain, walletRepository);
+            var rewardTx = createCoinbaseTX(from, "");
             blockchain.mineBlock(new Transaction[]{transaction, rewardTx}).orElseThrow();
             logger.log(INFO, "Success!");
         }
@@ -102,23 +100,21 @@ public class Main {
 
     @Command(
             description = "Create a wallet",
-            mixinStandardHelpOptions = true,
-            version = "4.1.3"
+            mixinStandardHelpOptions = true
     )
-    void createwallet() throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException {
+    void createwallet() throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, IOException, BadPaddingException, InvalidKeyException, ClassNotFoundException {
         var wallet = walletRepository.createWallet();
         logger.log(INFO, () -> "wallet address : %s".formatted(wallet.getAddress()));
     }
 
     @Command(
             description = "Print all wallets",
-            mixinStandardHelpOptions = true,
-            version = "4.1.3"
+            mixinStandardHelpOptions = true
     )
-    void printaddresses() {
+    void printaddresses() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, IOException, BadPaddingException, InvalidKeyException, ClassNotFoundException {
         var addresses = walletRepository.getAddresses();
-        if (addresses == null || addresses.isEmpty()) {
-            logger.log(INFO, "There isn't address");
+        if (addresses.isEmpty()) {
+            logger.log(INFO, "No addresses");
             return;
         }
         for (var address : addresses) {
@@ -128,8 +124,7 @@ public class Main {
 
     @Command(
             description = "Dump the blockchain",
-            mixinStandardHelpOptions = true,
-            version = "4.1.3"
+            mixinStandardHelpOptions = true
     )
     void printchain() throws RocksDBException {
         try (var storage = new RocksDbBlockRepository(objectMapper)) {

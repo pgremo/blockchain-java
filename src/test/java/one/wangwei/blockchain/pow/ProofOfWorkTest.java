@@ -4,8 +4,8 @@ import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.wallet.Wallet;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 import java.security.InvalidAlgorithmParameterException;
 import java.security.NoSuchAlgorithmException;
@@ -23,6 +23,6 @@ public class ProofOfWorkTest {
         var data = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
         var tx = Transaction.createCoinbaseTX(wallet.getAddress(), data);
         var block = Block.createGenesisBlock(tx).orElseThrow();
-        Assert.assertTrue(Pow.validate(block));
+        Assertions.assertTrue(Pow.validate(block));
     }
 }

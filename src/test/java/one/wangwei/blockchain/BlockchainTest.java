@@ -27,8 +27,8 @@ public class BlockchainTest {
         try {
 //            var argss = new String[]{"createwallet"};
 //            var argss = new String[]{"createblockchain", "--address", "1DL2cxJgyZUDRiFc8ZLUEiSmyhsW89Jtfe"};
-            var argss = new String[]{"printaddresses"};
-//            var argss = new String[]{"printchain"};
+//            var argss = new String[]{"printaddresses"};
+            var argss = new String[]{"printchain"};
 //            var argss = new String[]{"getbalance", "--address", "1DL2cxJgyZUDRiFc8ZLUEiSmyhsW89Jtfe"};
 //            var argss = new String[]{"send", "--from", "1DL2cxJgyZUDRiFc8ZLUEiSmyhsW89Jtfe", "--to", "1Kqs49YBR1TUs6YKiEZ1WgbH7e3U9mkto7", "--amount", "5"};
             new CommandLine(new Main()).execute(argss);

@@ -1,5 +1,6 @@
 package one.wangwei.blockchain.block;
 
+import one.wangwei.blockchain.pow.Pow;
 import one.wangwei.blockchain.store.RocksDbBlockRepository;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.transaction.TxInput;
@@ -44,7 +45,7 @@ public class Blockchain {
             }
         }
         return storage.getLastBlockId().flatMap(x -> {
-            var block = Block.createBlock(x, transactions);
+            var block = Pow.createBlock(x, transactions);
             block.ifPresent(this::add);
             return block;
         });

@@ -21,7 +21,13 @@ public record Address(byte version, byte[] hash, byte[] check) implements Serial
 
     @Override
     public String toString() {
-        return Base58Check.encode(ByteBuffer.allocate(25).put(version).put(hash).put(check).array());
+        return Base58Check.encode(
+                ByteBuffer.allocate(25)
+                        .put(version)
+                        .put(hash)
+                        .put(check)
+                        .array()
+        );
     }
 
     @Override

@@ -28,7 +28,7 @@ public class Blockchain {
             var baseData = "G4ZD3A4Ya!tFz6vkqFC8D@eDPXK2sLGT8tPqbeTKbzmC6e.sYy@RsmMm-_MytkACCwxFj";
             var tx = createCoinbaseTX(address, baseData);
             var block = Block.createGenesisBlock(tx).orElseThrow();
-            result.addBlock(block);
+            result.add(block);
         }
         return result;
     }
@@ -45,12 +45,12 @@ public class Blockchain {
         }
         return storage.getLastBlockId().flatMap(x -> {
             var block = Block.createBlock(x, transactions);
-            block.ifPresent(this::addBlock);
+            block.ifPresent(this::add);
             return block;
         });
     }
 
-    private void addBlock(Block block) {
+    private void add(Block block) {
         storage.appendBlock(block);
     }
 
@@ -67,28 +67,28 @@ public class Blockchain {
     private Optional<Transaction> findTransaction(Id txId) {
         return stream()
                 .flatMap(x -> Arrays.stream(x.transactions()))
-                .filter(x -> x.getId().equals(txId))
+                .filter(x -> x.id().equals(txId))
                 .findFirst();
     }
 
     public void signTransaction(Transaction tx, PrivateKey privateKey) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
-        var prevTx = Arrays.stream(tx.getInputs())
+        var prevTx = Arrays.stream(tx.inputs())
                 .map(TxInput::getTxId)
                 .distinct()
                 .map(this::findTransaction)
                 .flatMap(Optional::stream)
-                .collect(toMap(Transaction::getId, Function.identity()));
+                .collect(toMap(Transaction::id, Function.identity()));
         tx.sign(privateKey, prevTx);
     }
 
     public boolean verifyTransactions(Transaction tx) throws InvalidKeySpecException, SignatureException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException {
         if (tx.isCoinbase()) return true;
-        var prevTx = Arrays.stream(tx.getInputs())
+        var prevTx = Arrays.stream(tx.inputs())
                 .map(TxInput::getTxId)
                 .distinct()
                 .map(this::findTransaction)
                 .flatMap(Optional::stream)
-                .collect(toMap(Transaction::getId, Function.identity()));
+                .collect(toMap(Transaction::id, Function.identity()));
         return tx.verify(prevTx);
     }
 

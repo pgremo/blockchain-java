@@ -17,15 +17,20 @@ import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.nio.file.Files.newInputStream;
 import static java.nio.file.Files.newOutputStream;
-import static javax.crypto.Cipher.DECRYPT_MODE;
 import static javax.crypto.Cipher.ENCRYPT_MODE;
 
 public class WalletRepository {
-    public WalletRepository(ObjectMapper serializer) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, IOException, BadPaddingException, InvalidKeyException, ClassNotFoundException {
+    private static final Path WALLET_FILE = Path.of("wallet.dat");
+    private static final String ALGORITHM = "AES";
+    private final ObjectMapper serializer;
+    private final SecretKeySpec key;
+
+    public WalletRepository(ObjectMapper serializer, byte[] cipherText) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, IOException, InvalidKeyException, ClassNotFoundException {
         this.serializer = serializer;
+        this.key = new SecretKeySpec(cipherText, ALGORITHM);
+
         if (Files.exists(WALLET_FILE)) {
             loadFromDisk();
         } else {
@@ -33,23 +38,17 @@ public class WalletRepository {
         }
     }
 
-    private static final Path WALLET_FILE = Path.of("wallet.dat");
-    private static final String ALGORITHM = "AES";
-    private static final byte[] CIPHER_TEXT = "2oF@5sC%DNf32y!TmiZi!tG9W5rLaniD".getBytes(UTF_8);
-
-    private final ObjectMapper serializer;
-
-    public Set<Address> getAddresses() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, IOException, BadPaddingException, InvalidKeyException, ClassNotFoundException {
-        return loadFromDisk().orElseThrow().keySet();
+    public Set<Address> getAddresses() throws NoSuchAlgorithmException, IOException, InvalidKeyException, ClassNotFoundException {
+        return loadFromDisk().orElseGet(HashMap::new).keySet();
     }
 
-    public Wallet getWallet(Address address) throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, IOException, BadPaddingException, InvalidKeyException, ClassNotFoundException {
-        return loadFromDisk().orElseThrow().get(address);
+    public Wallet getWallet(Address address) throws NoSuchAlgorithmException, IOException, InvalidKeyException, ClassNotFoundException {
+        return loadFromDisk().orElseGet(HashMap::new).get(address);
     }
 
-    public Wallet createWallet() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException, NoSuchPaddingException, IllegalBlockSizeException, IOException, BadPaddingException, InvalidKeyException, ClassNotFoundException {
+    public Wallet createWallet() throws NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, IOException, InvalidKeyException, ClassNotFoundException {
         var wallet = Wallet.createWallet();
-        var wallets = loadFromDisk().orElse(new HashMap<>());
+        var wallets = loadFromDisk().orElseGet(HashMap::new);
         wallets.put(wallet.getAddress(), wallet);
         saveToDisk(wallets);
         return wallet;
@@ -57,18 +56,16 @@ public class WalletRepository {
 
     private void saveToDisk(HashMap<Address, Wallet> wallets) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IOException, IllegalBlockSizeException {
         var cipher = Cipher.getInstance(ALGORITHM);
-        cipher.init(ENCRYPT_MODE, new SecretKeySpec(CIPHER_TEXT, ALGORITHM));
-        try (var outputStream = new CipherOutputStream(new BufferedOutputStream(newOutputStream(WALLET_FILE)), cipher)) {
+        cipher.init(ENCRYPT_MODE, key);
+        try (var outputStream = new BufferedOutputStream(newOutputStream(WALLET_FILE))) {
             outputStream.write(serializer.serialize(new SealedObject(wallets, cipher)));
         }
     }
 
-    private Optional<HashMap<Address, Wallet>> loadFromDisk() throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IOException, IllegalBlockSizeException, BadPaddingException, ClassNotFoundException {
-        var cipher = Cipher.getInstance(ALGORITHM);
-        cipher.init(DECRYPT_MODE, new SecretKeySpec(CIPHER_TEXT, ALGORITHM));
-        try (var inputStream = new CipherInputStream(new BufferedInputStream(newInputStream(WALLET_FILE)), cipher)) {
+    private Optional<HashMap<Address, Wallet>> loadFromDisk() throws NoSuchAlgorithmException, InvalidKeyException, IOException, ClassNotFoundException {
+        try (var inputStream = new BufferedInputStream(newInputStream(WALLET_FILE))) {
             var sealedObject = serializer.deserialize(inputStream, SealedObject.class);
-            return Optional.of((HashMap<Address, Wallet>) sealedObject.getObject(cipher));
+            return Optional.of((HashMap<Address, Wallet>) sealedObject.getObject(key));
         }
     }
 }

@@ -11,7 +11,6 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.rocksdb.RocksDBException;
 import picocli.CommandLine;
 
-import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
@@ -21,6 +20,7 @@ import java.util.logging.LogManager;
 
 import static java.lang.System.Logger.Level.INFO;
 import static java.lang.System.getLogger;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static one.wangwei.blockchain.block.Blockchain.createBlockchain;
 import static one.wangwei.blockchain.transaction.Transaction.*;
 import static picocli.CommandLine.*;
@@ -34,7 +34,7 @@ public class Main {
     private static final System.Logger logger = getLogger(Main.class.getName());
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final WalletRepository walletRepository = new WalletRepository(objectMapper);
+    private final WalletRepository walletRepository = new WalletRepository(objectMapper, "2oF@5sC%DNf32y!TmiZi!tG9W5rLaniD".getBytes(UTF_8));
 
     static {
         Security.addProvider(new BouncyCastleProvider());
@@ -48,7 +48,7 @@ public class Main {
         }
     }
 
-    public Main() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, IOException, BadPaddingException, InvalidKeyException, ClassNotFoundException {
+    public Main() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, IOException, InvalidKeyException, ClassNotFoundException {
     }
 
     @Command(
@@ -70,7 +70,7 @@ public class Main {
     )
     void getbalance(
             @Option(names = {"--address"}, converter = AddressTypeConverter.class) Address address
-    ) throws RocksDBException, NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, IOException, BadPaddingException, InvalidKeyException, ClassNotFoundException {
+    ) throws RocksDBException, NoSuchAlgorithmException, IOException, InvalidKeyException, ClassNotFoundException {
         try (var storage = new RocksDbBlockRepository(objectMapper)) {
             var blockchain = createBlockchain(storage, address);
             var balance = getUnspent(blockchain, walletRepository.getWallet(address))
@@ -88,7 +88,7 @@ public class Main {
             @Option(names = {"--to"}, converter = AddressTypeConverter.class) Address to,
             @Option(names = {"--from"}, converter = AddressTypeConverter.class) Address from,
             @Option(names = {"--amount"}, converter = NaturalNumberTypeConverter.class) int amount
-    ) throws RocksDBException, SignatureException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, InvalidKeySpecException, NoSuchPaddingException, IllegalBlockSizeException, IOException, BadPaddingException, ClassNotFoundException {
+    ) throws RocksDBException, SignatureException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException, InvalidKeySpecException, IOException, ClassNotFoundException {
         try (var storage = new RocksDbBlockRepository(objectMapper)) {
             var blockchain = createBlockchain(storage, from);
             var transaction = createTransaction(from, to, amount, blockchain, walletRepository);
@@ -102,7 +102,7 @@ public class Main {
             description = "Create a wallet",
             mixinStandardHelpOptions = true
     )
-    void createwallet() throws NoSuchAlgorithmException, NoSuchProviderException, InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, IOException, BadPaddingException, InvalidKeyException, ClassNotFoundException {
+    void createwallet() throws NoSuchAlgorithmException, NoSuchPaddingException, IllegalBlockSizeException, IOException, InvalidKeyException, ClassNotFoundException {
         var wallet = walletRepository.createWallet();
         logger.log(INFO, () -> "wallet address : %s".formatted(wallet.getAddress()));
     }
@@ -111,14 +111,13 @@ public class Main {
             description = "Print all wallets",
             mixinStandardHelpOptions = true
     )
-    void printaddresses() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, IOException, BadPaddingException, InvalidKeyException, ClassNotFoundException {
+    void printaddresses() throws NoSuchAlgorithmException, IOException, InvalidKeyException, ClassNotFoundException {
         var addresses = walletRepository.getAddresses();
-        if (addresses.isEmpty()) {
-            logger.log(INFO, "No addresses");
-            return;
-        }
         for (var address : addresses) {
             logger.log(INFO, () -> "Wallet address: %s".formatted(address));
+        }
+        if (addresses.isEmpty()) {
+            logger.log(INFO, "No addresses");
         }
     }
 

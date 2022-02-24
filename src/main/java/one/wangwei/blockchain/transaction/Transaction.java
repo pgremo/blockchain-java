@@ -8,9 +8,6 @@ import one.wangwei.blockchain.wallet.Address;
 import one.wangwei.blockchain.wallet.Wallet;
 import one.wangwei.blockchain.wallet.WalletRepository;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
 import java.io.IOException;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
@@ -33,9 +30,9 @@ public class Transaction {
 
     public byte[] hash() {
         return Hashes.sha256(
-                merkleRoot(Arrays.stream(getInputs()).map(TxInput::hash).collect(toCollection(LinkedList::new))),
-                merkleRoot(Arrays.stream(getOutputs()).map(TxOutput::hash).collect(toCollection(LinkedList::new))),
-                Numbers.toBytes(getCreated().toEpochMilli())
+                merkleRoot(Arrays.stream(inputs()).map(TxInput::hash).collect(toCollection(LinkedList::new))),
+                merkleRoot(Arrays.stream(outputs()).map(TxOutput::hash).collect(toCollection(LinkedList::new))),
+                Numbers.toBytes(created().toEpochMilli())
         );
     }
 
@@ -44,15 +41,15 @@ public class Transaction {
         var txInput = new TxInput(new Id(new byte[0]), -1, null, data.getBytes());
         var txOutput = TxOutput.newTXOutput(SUBSIDY, to);
         var tx = new Transaction(null, new TxInput[]{txInput}, new TxOutput[]{txOutput}, Instant.now());
-        tx.setId(new Id(tx.hash()));
+        tx.id(new Id(tx.hash()));
         return tx;
     }
 
     public boolean isCoinbase() {
-        return getInputs().length == 1 && getInputs()[0].getTxId().value().length == 0 && getInputs()[0].getTxOutputIndex() == -1;
+        return inputs().length == 1 && inputs()[0].getTxId().value().length == 0 && inputs()[0].getTxOutputIndex() == -1;
     }
 
-    public static Transaction createTransaction(Address from, Address to, int amount, Blockchain chain, WalletRepository walletRepository) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, NoSuchPaddingException, IllegalBlockSizeException, IOException, BadPaddingException, ClassNotFoundException {
+    public static Transaction createTransaction(Address from, Address to, int amount, Blockchain chain, WalletRepository walletRepository) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, IOException, ClassNotFoundException {
         var fromWallet = walletRepository.getWallet(from);
         var predicate = new Predicate<TxOutputReference>() {
             private int total;
@@ -81,7 +78,7 @@ public class Transaction {
                 new TxOutput[]{first};
 
         var tx = new Transaction(null, inputs, outputs, Instant.now());
-        tx.setId(new Id(tx.hash()));
+        tx.id(new Id(tx.hash()));
 
         chain.signTransaction(tx, fromWallet.privateKey());
 
@@ -89,18 +86,17 @@ public class Transaction {
     }
 
     public static Stream<TxOutputReference> getUnspent(Blockchain chain, Wallet fromWallet) {
-        var fromPubKey = fromWallet.publicKey().getEncoded();
-        var fromPubKeyHash = BtcAddressUtils.ripeMD160Hash(fromPubKey);
-
         return chain.stream()
                 .flatMap(x -> Arrays.stream(x.transactions()))
                 .flatMap(new Function<>() {
                     private final List<TxInput> spent = new LinkedList<>();
+                    private final byte[] fromPubKey = fromWallet.publicKey().getEncoded();
+                    private final byte[] fromPubKeyHash = BtcAddressUtils.ripeMD160Hash(fromPubKey);
 
                     @Override
                     public Stream<? extends TxOutputReference> apply(Transaction transaction) {
                         var unspent = Stream.<TxOutputReference>builder();
-                        var outputs = transaction.getOutputs();
+                        var outputs = transaction.outputs();
                         for (var index = 0; index < outputs.length; index++) {
                             var output = outputs[index];
 
@@ -108,13 +104,13 @@ public class Transaction {
                             if (!Arrays.equals(output.pubKeyHash(), fromPubKeyHash)) continue;
 
                             // continue to the next output if this one is spent
-                            if (remove(transaction.getId(), index)) continue;
+                            if (remove(transaction.id(), index)) continue;
 
                             // add valid to list of unspent
-                            unspent.add(new TxOutputReference(transaction.getId(), index, output));
+                            unspent.add(new TxOutputReference(transaction.id(), index, output));
                         }
                         // accumulate transaction inputs of sender
-                        for (var input : transaction.getInputs()) {
+                        for (var input : transaction.inputs()) {
                             if (Arrays.equals(input.getPubKey(), fromPubKey)) {
                                 spent.add(input);
                             }
@@ -124,9 +120,9 @@ public class Transaction {
                     }
 
                     private boolean remove(Id txId, int index) {
-                        for (var iterator = spent.iterator(); iterator.hasNext(); ) {
-                            var next = iterator.next();
-                            if (next.getTxOutputIndex() == index && next.getTxId() == txId) {
+                        for (var iterator = spent.listIterator(spent.size()); iterator.hasPrevious(); ) {
+                            var next = iterator.previous();
+                            if (next.getTxOutputIndex() == index && Objects.equals(next.getTxId(), txId)) {
                                 iterator.remove();
                                 return true;
                             }
@@ -137,54 +133,54 @@ public class Transaction {
     }
 
     public Transaction trimmedCopy() {
-        var tmpTXInputs = new TxInput[getInputs().length];
-        for (var i = 0; i < getInputs().length; i++) {
-            var txInput = getInputs()[i];
+        var tmpTXInputs = new TxInput[inputs().length];
+        for (var i = 0; i < inputs().length; i++) {
+            var txInput = inputs()[i];
             tmpTXInputs[i] = new TxInput(txInput.getTxId(), txInput.getTxOutputIndex(), null, null);
         }
-        var tmpTXOutputs = new TxOutput[getOutputs().length];
-        for (var i = 0; i < getOutputs().length; i++) {
-            var txOutput = getOutputs()[i];
+        var tmpTXOutputs = new TxOutput[outputs().length];
+        for (var i = 0; i < outputs().length; i++) {
+            var txOutput = outputs()[i];
             tmpTXOutputs[i] = new TxOutput(txOutput.value(), txOutput.pubKeyHash());
         }
-        return new Transaction(getId(), tmpTXInputs, tmpTXOutputs, getCreated());
+        return new Transaction(id(), tmpTXInputs, tmpTXOutputs, created());
     }
 
     public void sign(PrivateKey privateKey, Map<Id, Transaction> prevTxMap) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException, NoSuchProviderException {
         if (isCoinbase()) return;
-        for (var txInput : getInputs()) {
+        for (var txInput : inputs()) {
             if (!prevTxMap.containsKey(txInput.getTxId()))
                 throw new RuntimeException("ERROR: Previous transaction is not correct");
         }
         var txCopy = trimmedCopy();
         var signature = Signature.getInstance("SHA256withECDSA", "SunEC");
         signature.initSign(privateKey);
-        for (var i = 0; i < txCopy.getInputs().length; i++) {
-            var txInputCopy = txCopy.getInputs()[i];
+        for (var i = 0; i < txCopy.inputs().length; i++) {
+            var txInputCopy = txCopy.inputs()[i];
             var prevTx = prevTxMap.get(txInputCopy.getTxId());
-            var prevTxOutput = prevTx.getOutputs()[txInputCopy.getTxOutputIndex()];
+            var prevTxOutput = prevTx.outputs()[txInputCopy.getTxOutputIndex()];
             txInputCopy.setPubKey(prevTxOutput.pubKeyHash());
             txInputCopy.setSignature(null);
             signature.update(txCopy.hash());
-            getInputs()[i].setSignature(signature.sign());
+            inputs()[i].setSignature(signature.sign());
             txInputCopy.setPubKey(null);
         }
     }
 
     public boolean verify(Map<Id, Transaction> prevTxMap) throws InvalidKeySpecException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, NoSuchProviderException {
         if (this.isCoinbase()) return true;
-        for (var txInput : getInputs()) {
+        for (var txInput : inputs()) {
             if (!prevTxMap.containsKey(txInput.getTxId()))
                 throw new RuntimeException("ERROR: Previous transaction is not correct");
         }
         var txCopy = trimmedCopy();
         var keyFactory = KeyFactory.getInstance("EC", "SunEC");
         var signature = Signature.getInstance("SHA256withECDSA", "SunEC");
-        for (var i = 0; i < getInputs().length; i++) {
-            var txInput = getInputs()[i];
+        for (var i = 0; i < inputs().length; i++) {
+            var txInput = inputs()[i];
             var prevTx = prevTxMap.get(txInput.getTxId());
-            var prevTxOutput = prevTx.getOutputs()[txInput.getTxOutputIndex()];
-            var txInputCopy = txCopy.getInputs()[i];
+            var prevTxOutput = prevTx.outputs()[txInput.getTxOutputIndex()];
+            var txInputCopy = txCopy.inputs()[i];
             txInputCopy.setSignature(null);
             txInputCopy.setPubKey(prevTxOutput.pubKeyHash());
             var publicKey = keyFactory.generatePublic(new X509EncodedKeySpec(txInput.getPubKey()));
@@ -196,24 +192,24 @@ public class Transaction {
         return true;
     }
 
-    public Id getId() {
+    public Id id() {
         return this.id;
     }
 
-    public TxInput[] getInputs() {
+    public void id(final Id id) {
+        this.id = id;
+    }
+
+    public TxInput[] inputs() {
         return this.inputs;
     }
 
-    public TxOutput[] getOutputs() {
+    public TxOutput[] outputs() {
         return this.outputs;
     }
 
-    public Instant getCreated() {
+    public Instant created() {
         return this.created;
-    }
-
-    public void setId(final Id id) {
-        this.id = id;
     }
 
     @Override
@@ -221,10 +217,10 @@ public class Transaction {
         if (o == this) return true;
         if (!(o instanceof final Transaction other)) return false;
         if (!other.canEqual(this)) return false;
-        if (this.getCreated() != other.getCreated()) return false;
-        if (!this.getId().equals(other.getId())) return false;
-        if (!Arrays.deepEquals(this.getInputs(), other.getInputs())) return false;
-        return Arrays.deepEquals(this.getOutputs(), other.getOutputs());
+        if (this.created() != other.created()) return false;
+        if (!this.id().equals(other.id())) return false;
+        if (!Arrays.deepEquals(this.inputs(), other.inputs())) return false;
+        return Arrays.deepEquals(this.outputs(), other.outputs());
     }
 
     protected boolean canEqual(final Object other) {
@@ -235,17 +231,17 @@ public class Transaction {
     public int hashCode() {
         final int PRIME = 59;
         int result = 1;
-        final long $createTime = this.getCreated().toEpochMilli();
+        final long $createTime = this.created().toEpochMilli();
         result = result * PRIME + (int) ($createTime >>> 32 ^ $createTime);
-        result = result * PRIME + this.getId().hashCode();
-        result = result * PRIME + Arrays.deepHashCode(this.getInputs());
-        result = result * PRIME + Arrays.deepHashCode(this.getOutputs());
+        result = result * PRIME + this.id().hashCode();
+        result = result * PRIME + Arrays.deepHashCode(this.inputs());
+        result = result * PRIME + Arrays.deepHashCode(this.outputs());
         return result;
     }
 
     @Override
     public String toString() {
-        return "Transaction[txId=" + id + ", inputs=" + Arrays.deepToString(this.getInputs()) + ", outputs=" + Arrays.deepToString(this.getOutputs()) + ", createTime=" + this.getCreated() + "]";
+        return "Transaction[txId=" + id + ", inputs=" + Arrays.deepToString(this.inputs()) + ", outputs=" + Arrays.deepToString(this.outputs()) + ", createTime=" + this.created() + "]";
     }
 
     public Transaction(final Id id, final TxInput[] inputs, final TxOutput[] outputs, final Instant created) {

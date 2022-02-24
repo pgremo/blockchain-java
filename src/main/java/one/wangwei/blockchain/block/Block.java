@@ -12,7 +12,7 @@ import java.util.Optional;
 public record Block(Id id, Id previousId, Transaction[] transactions, Instant timeStamp, long nonce) {
 
     public static Optional<Block> createGenesisBlock(Transaction coinbase) {
-        return Block.createBlock(Id.Null, coinbase);
+        return createBlock(Id.Null, coinbase);
     }
 
     public static Optional<Block> createBlock(Id previousId, Transaction... transactions) {

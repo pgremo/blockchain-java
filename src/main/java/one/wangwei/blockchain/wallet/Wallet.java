@@ -10,10 +10,18 @@ import static one.wangwei.blockchain.util.BtcAddressUtils.ripeMD160Hash;
 
 
 public record Wallet(PrivateKey privateKey, PublicKey publicKey) implements Serializable {
+    private static final KeyPairGenerator generator;
 
-    public static Wallet createWallet() throws InvalidAlgorithmParameterException, NoSuchAlgorithmException, NoSuchProviderException {
-        var generator = KeyPairGenerator.getInstance("EC", "SunEC");
-        generator.initialize(new ECGenParameterSpec("secp521r1"));
+    static {
+        try {
+            generator = KeyPairGenerator.getInstance("EC", "SunEC");
+            generator.initialize(new ECGenParameterSpec("secp521r1"));
+        } catch (NoSuchAlgorithmException | NoSuchProviderException | InvalidAlgorithmParameterException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static Wallet createWallet() {
         var keyPair = generator.generateKeyPair();
         return new Wallet(keyPair.getPrivate(), keyPair.getPublic());
     }

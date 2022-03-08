@@ -10,11 +10,12 @@ import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
+import static java.util.function.Function.identity;
 import static java.util.function.Predicate.not;
 import static java.util.stream.Collectors.toMap;
+import static one.wangwei.blockchain.block.Block.createGenesisBlock;
 import static one.wangwei.blockchain.transaction.Transaction.Id;
 import static one.wangwei.blockchain.transaction.Transaction.createCoinbaseTX;
 
@@ -23,15 +24,15 @@ public class Blockchain {
     private final RocksDbBlockRepository storage;
 
     public static Blockchain createBlockchain(RocksDbBlockRepository storage, Address address) {
-        var result = new Blockchain(storage);
-        var last = result.getLastBlockHash();
-        if (last.isEmpty()) {
+        storage.getLastBlockId().or(() -> {
             var baseData = "G4ZD3A4Ya!tFz6vkqFC8D@eDPXK2sLGT8tPqbeTKbzmC6e.sYy@RsmMm-_MytkACCwxFj";
             var tx = createCoinbaseTX(address, baseData);
-            var block = Block.createGenesisBlock(tx).orElseThrow();
-            result.add(block);
-        }
-        return result;
+            var block = createGenesisBlock(tx).orElseThrow();
+            storage.appendBlock(block);
+            return Optional.of(block.id());
+        });
+
+        return new Blockchain(storage);
     }
 
     public Blockchain(RocksDbBlockRepository storage) {
@@ -60,14 +61,15 @@ public class Blockchain {
                 .iterate(
                         storage.getLastBlockId().flatMap(storage::getBlock),
                         not(Optional::isEmpty),
-                        x -> x.flatMap(y -> storage.getBlock(y.previousId()))
+                        x -> x.map(Block::previousId).flatMap(storage::getBlock)
                 )
                 .flatMap(Optional::stream);
     }
 
     private Optional<Transaction> findTransaction(Id txId) {
         return stream()
-                .flatMap(x -> Arrays.stream(x.transactions()))
+                .map(Block::transactions)
+                .flatMap(Arrays::stream)
                 .filter(x -> x.id().equals(txId))
                 .findFirst();
     }
@@ -78,7 +80,7 @@ public class Blockchain {
                 .distinct()
                 .map(this::findTransaction)
                 .flatMap(Optional::stream)
-                .collect(toMap(Transaction::id, Function.identity()));
+                .collect(toMap(Transaction::id, identity()));
         tx.sign(privateKey, prevTx);
     }
 
@@ -89,11 +91,7 @@ public class Blockchain {
                 .distinct()
                 .map(this::findTransaction)
                 .flatMap(Optional::stream)
-                .collect(toMap(Transaction::id, Function.identity()));
+                .collect(toMap(Transaction::id, identity()));
         return tx.verify(prevTx);
-    }
-
-    public Optional<Block.Id> getLastBlockHash() {
-        return storage.getLastBlockId();
     }
 }

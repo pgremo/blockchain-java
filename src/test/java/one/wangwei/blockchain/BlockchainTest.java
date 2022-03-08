@@ -5,6 +5,7 @@ import one.wangwei.blockchain.cli.Main;
 import one.wangwei.blockchain.store.RocksDbBlockRepository;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.ObjectMapper;
+import one.wangwei.blockchain.wallet.Address;
 import one.wangwei.blockchain.wallet.Wallet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -14,10 +15,12 @@ import picocli.CommandLine;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 
+import static one.wangwei.blockchain.wallet.Address.Version.Prod;
+
 public class BlockchainTest {
     @Test
     public void shouldVerify() throws RocksDBException, InvalidKeySpecException, SignatureException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException {
-        var wallet = Wallet.createWallet();
+        var wallet = Wallet.createWallet(Prod);
         var data = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks";
         var tx = Transaction.createCoinbaseTX(wallet.getAddress(), data);
         Assertions.assertTrue(new Blockchain(new RocksDbBlockRepository(new ObjectMapper())).verifyTransactions(tx));

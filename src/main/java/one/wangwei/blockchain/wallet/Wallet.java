@@ -1,15 +1,15 @@
 package one.wangwei.blockchain.wallet;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.security.*;
 import java.security.spec.ECGenParameterSpec;
 
-import static java.lang.System.arraycopy;
 import static one.wangwei.blockchain.util.BtcAddressUtils.checksum;
 import static one.wangwei.blockchain.util.BtcAddressUtils.ripeMD160Hash;
 
 
-public record Wallet(PrivateKey privateKey, PublicKey publicKey) implements Serializable {
+public record Wallet(Address.Version version, PrivateKey privateKey, PublicKey publicKey) implements Serializable {
     private static final KeyPairGenerator generator;
 
     static {
@@ -21,20 +21,19 @@ public record Wallet(PrivateKey privateKey, PublicKey publicKey) implements Seri
         }
     }
 
-    public static Wallet createWallet() {
-        var keyPair = generator.generateKeyPair();
-        return new Wallet(keyPair.getPrivate(), keyPair.getPublic());
+    public static Wallet createWallet(Address.Version version) {
+        var pair = generator.generateKeyPair();
+        return new Wallet(version, pair.getPrivate(), pair.getPublic());
     }
 
     public Address getAddress() {
         var value = ripeMD160Hash(publicKey.getEncoded());
-        var buffer = new byte[25];
-        buffer[0] = 0;
-        arraycopy(value, 0, buffer, 1, value.length);
-        var versioned = new byte[21];
-        arraycopy(buffer, 0, versioned, 0, versioned.length);
-        var check = checksum(versioned);
-        arraycopy(check, 0, buffer, 21, check.length);
-        return new Address((byte) 0, value, check);
+        var check = checksum(
+                ByteBuffer.allocate(value.length + 1)
+                        .put(version.value())
+                        .put(value)
+                        .array()
+        );
+        return new Address(version, value, check);
     }
 }

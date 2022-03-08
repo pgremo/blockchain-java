@@ -13,6 +13,7 @@ import picocli.CommandLine;
 
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
+import javax.crypto.spec.SecretKeySpec;
 import java.io.IOException;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
@@ -27,14 +28,17 @@ import static picocli.CommandLine.*;
 
 @Command(
         name = "blockchain",
-        subcommands = {HelpCommand.class},
+        subcommands = HelpCommand.class,
         description = "Manage a blockchain"
 )
 public class Main {
     private static final System.Logger logger = getLogger(Main.class.getName());
 
     private final ObjectMapper objectMapper = new ObjectMapper();
-    private final WalletRepository walletRepository = new WalletRepository(objectMapper, "2oF@5sC%DNf32y!TmiZi!tG9W5rLaniD".getBytes(UTF_8));
+    private final WalletRepository walletRepository = new WalletRepository(
+            objectMapper,
+            new SecretKeySpec("2oF@5sC%DNf32y!TmiZi!tG9W5rLaniD".getBytes(UTF_8), "AES")
+    );
 
     static {
         Security.addProvider(new BouncyCastleProvider());
@@ -46,9 +50,6 @@ public class Main {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public Main() throws NoSuchPaddingException, IllegalBlockSizeException, NoSuchAlgorithmException, IOException, InvalidKeyException, ClassNotFoundException {
     }
 
     @Command(
@@ -131,7 +132,7 @@ public class Main {
         }
     }
 
-    public static void main(String... args) throws Exception {
+    public static void main(String... args) {
         System.exit(new CommandLine(new Main()).execute(args));
     }
 }

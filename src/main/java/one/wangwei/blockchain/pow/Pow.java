@@ -31,7 +31,7 @@ public class Pow {
                 .mapToObj(x -> {
                     var now = now();
                     return new Block(
-                            new Block.Id(hash(x, previousId, transactions, now)),
+                            new Block.Id(hash(previousId, transactions, now, x)),
                             previousId,
                             transactions,
                             now,
@@ -47,10 +47,10 @@ public class Pow {
     }
 
     public static boolean validate(Block block) {
-        return new BigInteger(1, hash(block.nonce(), block.previousId(), block.transactions(), block.timeStamp())).compareTo(target) < 0;
+        return new BigInteger(1, hash(block.previousId(), block.transactions(), block.timeStamp(), block.nonce())).compareTo(target) < 0;
     }
 
-    private static byte[] hash(long nonce, Block.Id id, Transaction[] transactions, Instant stamp) {
+    private static byte[] hash(Block.Id id, Transaction[] transactions, Instant stamp, long nonce) {
         return sha256(
                 new BigInteger(1, id.value()).toByteArray(),
                 merkleRoot(stream(transactions).map(Transaction::hash).collect(toCollection(LinkedList::new))),

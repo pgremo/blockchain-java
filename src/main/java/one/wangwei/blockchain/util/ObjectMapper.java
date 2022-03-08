@@ -14,7 +14,6 @@ import org.objenesis.strategy.StdInstantiatorStrategy;
 
 import javax.crypto.SealedObject;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -79,14 +78,6 @@ public class ObjectMapper {
         ) {
             mapper.writeObject(output, object);
             return output.toBytes();
-        }
-    }
-
-    public void serializeToStream(Object object, OutputStream out) {
-        try (
-                var mapper = pool.obtain()
-        ) {
-            mapper.writeObject(new Output(out), object);
         }
     }
 }

@@ -6,35 +6,29 @@ import org.rocksdb.*;
 
 import java.util.Optional;
 
-import static java.lang.System.Logger.Level.ERROR;
 import static java.lang.System.arraycopy;
-import static java.lang.System.getLogger;
 import static java.util.Optional.ofNullable;
 
 
 public class RocksDbBlockRepository implements AutoCloseable {
-    private static final System.Logger logger = getLogger(RocksDbBlockRepository.class.getName());
     private static final String DB_FILE = "blockchain.db";
 
     private final TransactionDB db;
     private final ObjectMapper serializer;
 
     public RocksDbBlockRepository(ObjectMapper serializer) throws RocksDBException {
+        this.serializer = serializer;
         this.db = TransactionDB.open(
-                new Options()
-                        .setCreateIfMissing(true),
+                new Options().setCreateIfMissing(true),
                 new TransactionDBOptions(),
                 DB_FILE
         );
-
-        this.serializer = serializer;
     }
 
     public Optional<Block.Id> getLastBlockId() {
         try {
             return withTransaction(tx -> ofNullable(tx.get(new ReadOptions(), new byte[]{'l'})).map(Block.Id::new));
         } catch (RocksDBException e) {
-            logger.log(ERROR, "Fail to get last block id !", e);
             throw new RuntimeException("Fail to get last block id !", e);
         }
     }
@@ -51,7 +45,6 @@ public class RocksDbBlockRepository implements AutoCloseable {
                 return true;
             });
         } catch (RocksDBException e) {
-            logger.log(ERROR, () -> "Fail to put block ! block=%s".formatted(block), e);
             throw new RuntimeException("Fail to put block ! block=%s".formatted(block), e);
         }
     }
@@ -64,7 +57,6 @@ public class RocksDbBlockRepository implements AutoCloseable {
         try {
             return withTransaction(tx -> ofNullable(tx.get(new ReadOptions(), key)).map(data -> serializer.deserialize(data, Block.class)));
         } catch (RocksDBException e) {
-            logger.log(ERROR, () -> "Fail to get block ! block=%s".formatted(id), e);
             throw new RuntimeException("Fail to get block ! block=%s".formatted(id), e);
         }
     }

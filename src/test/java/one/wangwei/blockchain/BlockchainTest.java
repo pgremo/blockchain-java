@@ -5,14 +5,16 @@ import one.wangwei.blockchain.cli.Main;
 import one.wangwei.blockchain.store.RocksDbBlockRepository;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.ObjectMapper;
-import one.wangwei.blockchain.wallet.Address;
 import one.wangwei.blockchain.wallet.Wallet;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.rocksdb.RocksDBException;
 import picocli.CommandLine;
 
-import java.security.*;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 
 import static one.wangwei.blockchain.wallet.Address.Version.Prod;
@@ -29,11 +31,11 @@ public class BlockchainTest {
     public static void main(String[] args) {
         try {
 //            var argss = new String[]{"createwallet"};
-//            var argss = new String[]{"createblockchain", "--address", "1DL2cxJgyZUDRiFc8ZLUEiSmyhsW89Jtfe"};
+            var argss = new String[]{"createblockchain", "--address", "1KiFpPShm9zUQDpcxkoXRuZCXwZc8kMMvj"};
 //            var argss = new String[]{"printaddresses"};
-            var argss = new String[]{"printchain"};
+//            var argss = new String[]{"printchain"};
 //            var argss = new String[]{"getbalance", "--address", "1DL2cxJgyZUDRiFc8ZLUEiSmyhsW89Jtfe"};
-//            var argss = new String[]{"send", "--from", "1DL2cxJgyZUDRiFc8ZLUEiSmyhsW89Jtfe", "--to", "1Kqs49YBR1TUs6YKiEZ1WgbH7e3U9mkto7", "--amount", "5"};
+//            var argss = new String[]{"send", "--from", "1KiFpPShm9zUQDpcxkoXRuZCXwZc8kMMvj", "--to", "1Kqs49YBR1TUs6YKiEZ1WgbH7e3U9mkto7", "--amount", "5"};
             new CommandLine(new Main()).execute(argss);
         } catch (Exception e) {
             e.printStackTrace();

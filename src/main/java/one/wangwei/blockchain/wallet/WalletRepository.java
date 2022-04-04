@@ -17,8 +17,7 @@ import java.util.HashMap;
 import java.util.Optional;
 import java.util.Set;
 
-import static java.nio.file.Files.newInputStream;
-import static java.nio.file.Files.newOutputStream;
+import static java.nio.file.Files.*;
 import static javax.crypto.Cipher.ENCRYPT_MODE;
 import static one.wangwei.blockchain.wallet.Address.Version.Prod;
 
@@ -57,6 +56,7 @@ public class WalletRepository {
     }
 
     private Optional<HashMap<Address, Wallet>> load() throws NoSuchAlgorithmException, InvalidKeyException, IOException, ClassNotFoundException {
+        if (!exists(WALLET_FILE)) return Optional.empty();
         try (var stream = new BufferedInputStream(newInputStream(WALLET_FILE))) {
             var sealedObject = serializer.deserialize(stream, SealedObject.class);
             return Optional.of((HashMap<Address, Wallet>) sealedObject.getObject(key));

@@ -33,11 +33,10 @@ public final class Base58 {
 
 
     private static byte[] addCheck(byte[] data) {
-        var hash = Arrays.copyOf(BtcAddressUtils.doubleHash(data), 4);
-        var buf = ByteBuffer.allocate(data.length + 4);
-        buf.put(data);
-        buf.put(hash);
-        return buf.array();
+        return ByteBuffer.allocate(data.length + 4)
+                .put(data)
+                .put(Arrays.copyOf(BtcAddressUtils.doubleHash(data), 4))
+                .array();
     }
 
 
@@ -58,9 +57,9 @@ public final class Base58 {
         // Parse base-58 string
         var num = BigInteger.ZERO;
         for (var i = 0; i < s.length(); i++) {
-            num = num.multiply(ALPHABET_SIZE);
-            var digit = ALPHABET[s.charAt(i)];
-            num = num.add(BigInteger.valueOf(digit));
+            num = num
+                    .multiply(ALPHABET_SIZE)
+                    .add(BigInteger.valueOf(INDEXES[s.charAt(i)]));
         }
         // Strip possible leading zero due to mandatory sign bit
         var b = num.toByteArray();
@@ -81,15 +80,13 @@ public final class Base58 {
     }
 
 
-    /*---- Class constants ----*/
-
     private static final char[] ALPHABET = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz".toCharArray();
     private static final BigInteger ALPHABET_SIZE = BigInteger.valueOf(ALPHABET.length);
 
+    private static final int[] INDEXES = new int[128];
 
-    /*---- Miscellaneous ----*/
-
-    private Base58() {
-    }  // Not instantiable
-
+    static {
+        Arrays.fill(INDEXES, -1);
+        for (int i = 0; i < ALPHABET.length; i++) INDEXES[ALPHABET[i]] = i;
+    }
 }

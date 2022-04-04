@@ -28,14 +28,6 @@ public class Transaction {
     private final TxOutput[] outputs;
     private final Instant created;
 
-    public byte[] hash() {
-        return Hashes.sha256(
-                merkleRoot(Arrays.stream(inputs()).map(TxInput::hash).collect(toCollection(LinkedList::new))),
-                merkleRoot(Arrays.stream(outputs()).map(TxOutput::hash).collect(toCollection(LinkedList::new))),
-                Numbers.toBytes(created().toEpochMilli())
-        );
-    }
-
     public static Transaction createCoinbaseTX(Address to, String data) {
         if (data.isBlank()) data = "Reward to '%s'".formatted(to);
         var txInput = new TxInput(new Id(new byte[0]), -1, null, data.getBytes());
@@ -43,6 +35,14 @@ public class Transaction {
         var tx = new Transaction(null, new TxInput[]{txInput}, new TxOutput[]{txOutput}, Instant.now());
         tx.id(new Id(tx.hash()));
         return tx;
+    }
+
+    public byte[] hash() {
+        return Hashes.sha256(
+                merkleRoot(Arrays.stream(inputs()).map(TxInput::hash).collect(toCollection(LinkedList::new))),
+                merkleRoot(Arrays.stream(outputs()).map(TxOutput::hash).collect(toCollection(LinkedList::new))),
+                Numbers.toBytes(created().toEpochMilli())
+        );
     }
 
     public boolean isCoinbase() {

@@ -6,9 +6,9 @@ import one.wangwei.blockchain.util.Numbers;
 import java.util.Arrays;
 import java.util.HexFormat;
 
-public class TxInput {
+public class Input {
     private final Transaction.Id txId;
-    private final int txOutputIndex;
+    private final int outputIndex;
     private byte[] signature;
     private byte[] pubKey;
 
@@ -16,8 +16,8 @@ public class TxInput {
         return txId;
     }
 
-    public int getTxOutputIndex() {
-        return txOutputIndex;
+    public int getOutputIndex() {
+        return outputIndex;
     }
 
     public byte[] getSignature() {
@@ -37,29 +37,29 @@ public class TxInput {
     }
 
     public byte[] hash() {
-        return Hashes.sha256(txId.value(), Numbers.toBytes(txOutputIndex), signature, pubKey);
+        return Hashes.sha256(txId.value(), Numbers.toBytes(outputIndex), signature, pubKey);
     }
 
     @Override
     public boolean equals(final Object o) {
         if (o == this) return true;
-        if (!(o instanceof final TxInput other)) return false;
+        if (!(o instanceof final Input other)) return false;
         if (!other.canEqual(this)) return false;
-        if (this.getTxOutputIndex() != other.getTxOutputIndex()) return false;
+        if (this.getOutputIndex() != other.getOutputIndex()) return false;
         if (!this.getTxId().equals(other.getTxId())) return false;
         if (!Arrays.equals(this.getSignature(), other.getSignature())) return false;
         return Arrays.equals(this.getPubKey(), other.getPubKey());
     }
 
     protected boolean canEqual(final Object other) {
-        return other instanceof TxInput;
+        return other instanceof Input;
     }
 
     @Override
     public int hashCode() {
         final int PRIME = 59;
         int result = 1;
-        result = result * PRIME + getTxOutputIndex();
+        result = result * PRIME + getOutputIndex();
         result = result * PRIME + getTxId().hashCode();
         result = result * PRIME + Arrays.hashCode(getSignature());
         result = result * PRIME + Arrays.hashCode(getPubKey());
@@ -70,15 +70,15 @@ public class TxInput {
     public String toString() {
         return "TXInput[txId=%s, txOutputIndex=%d, signature=%s, pubKey=%s]".formatted(
                 txId,
-                txOutputIndex,
+                outputIndex,
                 signature == null ? "" : HexFormat.of().formatHex(signature),
                 pubKey == null ? "" : HexFormat.of().formatHex(pubKey)
         );
     }
 
-    public TxInput(final Transaction.Id txId, final int txOutputIndex, final byte[] signature, final byte[] pubKey) {
+    public Input(final Transaction.Id txId, final int outputIndex, final byte[] signature, final byte[] pubKey) {
         this.txId = txId;
-        this.txOutputIndex = txOutputIndex;
+        this.outputIndex = outputIndex;
         this.signature = signature;
         this.pubKey = pubKey;
     }

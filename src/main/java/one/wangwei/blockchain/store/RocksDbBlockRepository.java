@@ -15,11 +15,12 @@ public class RocksDbBlockRepository implements AutoCloseable {
 
     private final TransactionDB db;
     private final ObjectMapper serializer;
+    private final Options options = new Options().setCreateIfMissing(true);
 
     public RocksDbBlockRepository(ObjectMapper serializer) throws RocksDBException {
         this.serializer = serializer;
         this.db = TransactionDB.open(
-                new Options().setCreateIfMissing(true),
+                options,
                 new TransactionDBOptions(),
                 DB_FILE
         );
@@ -33,7 +34,7 @@ public class RocksDbBlockRepository implements AutoCloseable {
         }
     }
 
-    public void appendBlock(Block block) {
+    public void append(Block block) {
         var x = block.id().value();
         var key = new byte[x.length + 1];
         key[0] = 'b';
@@ -49,7 +50,7 @@ public class RocksDbBlockRepository implements AutoCloseable {
         }
     }
 
-    public Optional<Block> getBlock(Block.Id id) {
+    public Optional<Block> findById(Block.Id id) {
         var raw = id.value();
         var key = new byte[raw.length + 1];
         key[0] = 'b';
@@ -79,6 +80,7 @@ public class RocksDbBlockRepository implements AutoCloseable {
     }
 
     public void close() {
+        options.close();
         db.close();
     }
 }

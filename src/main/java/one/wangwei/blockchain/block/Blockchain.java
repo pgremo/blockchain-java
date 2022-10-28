@@ -2,14 +2,17 @@ package one.wangwei.blockchain.block;
 
 import one.wangwei.blockchain.pow.Pow;
 import one.wangwei.blockchain.store.RocksDbBlockRepository;
+import one.wangwei.blockchain.transaction.Input;
+import one.wangwei.blockchain.transaction.OutputReference;
 import one.wangwei.blockchain.transaction.Transaction;
-import one.wangwei.blockchain.transaction.TxInput;
+import one.wangwei.blockchain.util.BtcAddressUtils;
 import one.wangwei.blockchain.wallet.Address;
+import one.wangwei.blockchain.wallet.Wallet;
 
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
-import java.util.Arrays;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import static java.util.function.Function.identity;
@@ -28,7 +31,7 @@ public class Blockchain {
             var baseData = "G4ZD3A4Ya!tFz6vkqFC8D@eDPXK2sLGT8tPqbeTKbzmC6e.sYy@RsmMm-_MytkACCwxFj";
             var tx = createCoinbaseTX(address, baseData);
             var block = createGenesisBlock(tx).orElseThrow();
-            storage.appendBlock(block);
+            storage.append(block);
             return Optional.of(block.id());
         });
 
@@ -37,6 +40,54 @@ public class Blockchain {
 
     public Blockchain(RocksDbBlockRepository storage) {
         this.storage = storage;
+    }
+
+    public Stream<OutputReference> getUnspent(Wallet fromWallet) {
+        return stream()
+                .flatMap(x -> Arrays.stream(x.transactions()))
+                .flatMap(new Function<>() {
+                    private final List<Input> spent = new LinkedList<>();
+                    private final byte[] fromPubKey = fromWallet.publicKey().getEncoded();
+                    private final byte[] fromPubKeyHash = BtcAddressUtils.ripeMD160Hash(fromPubKey);
+
+                    @Override
+                    public Stream<? extends OutputReference> apply(Transaction transaction) {
+                        var unspent = Stream.<OutputReference>builder();
+                        var outputs = transaction.outputs();
+                        for (var index = 0; index < outputs.length; index++) {
+                            var output = outputs[index];
+
+                            // continue to the next output if this one is not of the sender
+                            if (!Arrays.equals(output.pubKeyHash(), fromPubKeyHash)) continue;
+
+                            // continue to the next output if this one is spent
+                            if (remove(transaction.id(), index)) continue;
+
+                            // add valid to list of unspent
+                            unspent.add(new OutputReference(transaction.id(), index, output));
+                        }
+                        // accumulate transaction inputs of sender
+                        for (var input : transaction.inputs()) {
+                            if (Arrays.equals(input.getPubKey(), fromPubKey)) {
+                                spent.add(input);
+                            }
+                        }
+
+                        return unspent.build();
+                    }
+
+                    private boolean remove(Id txId, int index) {
+                        var iterator = spent.listIterator(spent.size());
+                        while (iterator.hasPrevious()) {
+                            var next = iterator.previous();
+                            if (next.getOutputIndex() == index && Objects.equals(next.getTxId(), txId)) {
+                                iterator.remove();
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+                });
     }
 
     public Optional<Block> mineBlock(Transaction[] transactions) throws InvalidKeySpecException, SignatureException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException {
@@ -53,15 +104,15 @@ public class Blockchain {
     }
 
     private void add(Block block) {
-        storage.appendBlock(block);
+        storage.append(block);
     }
 
     public Stream<Block> stream() {
         return Stream
                 .iterate(
-                        storage.getLastBlockId().flatMap(storage::getBlock),
+                        storage.getLastBlockId().flatMap(storage::findById),
                         not(Optional::isEmpty),
-                        x -> x.map(Block::previousId).flatMap(storage::getBlock)
+                        x -> x.map(Block::previousId).flatMap(storage::findById)
                 )
                 .flatMap(Optional::stream);
     }
@@ -76,7 +127,7 @@ public class Blockchain {
 
     public void signTransaction(Transaction tx, PrivateKey privateKey) throws NoSuchAlgorithmException, SignatureException, InvalidKeyException, NoSuchProviderException {
         var prevTx = Arrays.stream(tx.inputs())
-                .map(TxInput::getTxId)
+                .map(Input::getTxId)
                 .distinct()
                 .map(this::findTransaction)
                 .flatMap(Optional::stream)
@@ -87,7 +138,7 @@ public class Blockchain {
     public boolean verifyTransactions(Transaction tx) throws InvalidKeySpecException, SignatureException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException {
         if (tx.isCoinbase()) return true;
         var prevTx = Arrays.stream(tx.inputs())
-                .map(TxInput::getTxId)
+                .map(Input::getTxId)
                 .distinct()
                 .map(this::findTransaction)
                 .flatMap(Optional::stream)

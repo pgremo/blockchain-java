@@ -9,11 +9,13 @@ import javax.crypto.SealedObject;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
+import java.io.Serializable;
 import java.nio.file.Path;
 import java.security.InvalidKeyException;
 import java.security.Key;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -47,7 +49,7 @@ public class WalletRepository {
         return wallet;
     }
 
-    private void save(HashMap<Address, Wallet> wallets) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IOException, IllegalBlockSizeException {
+    private <T extends Map<Address, Wallet> & Serializable> void save(T wallets) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IOException, IllegalBlockSizeException {
         var cipher = Cipher.getInstance(key.getAlgorithm());
         cipher.init(ENCRYPT_MODE, key);
         try (var stream = new BufferedOutputStream(newOutputStream(WALLET_FILE))) {
@@ -55,11 +57,11 @@ public class WalletRepository {
         }
     }
 
-    private Optional<HashMap<Address, Wallet>> load() throws NoSuchAlgorithmException, InvalidKeyException, IOException, ClassNotFoundException {
+    private <T extends Map<Address, Wallet> & Serializable> Optional<T> load() throws NoSuchAlgorithmException, InvalidKeyException, IOException, ClassNotFoundException {
         if (!exists(WALLET_FILE)) return Optional.empty();
         try (var stream = new BufferedInputStream(newInputStream(WALLET_FILE))) {
             var sealedObject = serializer.deserialize(stream, SealedObject.class);
-            return Optional.of((HashMap<Address, Wallet>) sealedObject.getObject(key));
+            return Optional.of((T) sealedObject.getObject(key));
         }
     }
 }

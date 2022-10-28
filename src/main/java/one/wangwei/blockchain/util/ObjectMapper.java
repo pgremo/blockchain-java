@@ -8,8 +8,6 @@ import com.esotericsoftware.kryo.util.DefaultInstantiatorStrategy;
 import com.esotericsoftware.kryo.util.Pool;
 import one.wangwei.blockchain.block.Block;
 import one.wangwei.blockchain.transaction.Transaction;
-import one.wangwei.blockchain.transaction.TxInput;
-import one.wangwei.blockchain.transaction.TxOutput;
 import org.objenesis.strategy.StdInstantiatorStrategy;
 
 import javax.crypto.SealedObject;
@@ -24,14 +22,12 @@ public class ObjectMapper {
 
     private static final Pool<PooledKryo> pool = new Pool<>(true, true, 16) {
         protected PooledKryo create() {
-            var kryo = new PooledKryo(this);
-
-            kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
-
             var rs = new RecordSerializer<>();
             rs.setFixedFieldTypes(true);
-            kryo.addDefaultSerializer(Record.class, rs);
 
+            var kryo = new PooledKryo(this);
+            kryo.setInstantiatorStrategy(new DefaultInstantiatorStrategy(new StdInstantiatorStrategy()));
+            kryo.addDefaultSerializer(Record.class, rs);
             kryo.register(ArrayList.class);
             kryo.register(Block.class);
             kryo.register(Block.Id.class);
@@ -43,10 +39,10 @@ public class ObjectMapper {
             kryo.register(Transaction[].class);
             kryo.register(Transaction.Id.class);
             kryo.register(TreeMap.class, new JavaSerializer());
-            kryo.register(TxInput.class);
-            kryo.register(TxInput[].class);
-            kryo.register(TxOutput.class);
-            kryo.register(TxOutput[].class);
+            kryo.register(one.wangwei.blockchain.transaction.Input.class);
+            kryo.register(one.wangwei.blockchain.transaction.Input[].class);
+            kryo.register(one.wangwei.blockchain.transaction.Output.class);
+            kryo.register(one.wangwei.blockchain.transaction.Output[].class);
             kryo.register(byte[].class);
 
             return kryo;

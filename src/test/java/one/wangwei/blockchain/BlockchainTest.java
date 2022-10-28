@@ -6,20 +6,21 @@ import one.wangwei.blockchain.store.RocksDbBlockRepository;
 import one.wangwei.blockchain.transaction.Transaction;
 import one.wangwei.blockchain.util.ObjectMapper;
 import one.wangwei.blockchain.wallet.Wallet;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.rocksdb.RocksDBException;
 import picocli.CommandLine;
 
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.SignatureException;
+import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 
 import static one.wangwei.blockchain.wallet.Address.Version.Prod;
 
 public class BlockchainTest {
+    static {
+        Security.addProvider(new BouncyCastleProvider());
+    }
     @Test
     public void shouldVerify() throws RocksDBException, InvalidKeySpecException, SignatureException, NoSuchAlgorithmException, InvalidKeyException, NoSuchProviderException {
         var wallet = Wallet.createWallet(Prod);

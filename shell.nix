@@ -1,4 +1,4 @@
-{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/81cef6b70fb5d5cdba5a0fef3f714c2dadaf0d6d.tar.gz") {}
+{ pkgs ? import (fetchTarball "https://github.com/NixOS/nixpkgs/archive/2e5b0b553ab52b963052a3ed76c166fd74eabbfd.tar.gz") {}
 }:let
 
 in pkgs.mkShell {

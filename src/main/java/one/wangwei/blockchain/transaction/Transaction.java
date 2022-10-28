@@ -5,7 +5,6 @@ import one.wangwei.blockchain.util.BtcAddressUtils;
 import one.wangwei.blockchain.util.Hashes;
 import one.wangwei.blockchain.util.Numbers;
 import one.wangwei.blockchain.wallet.Address;
-import one.wangwei.blockchain.wallet.Wallet;
 import one.wangwei.blockchain.wallet.WalletRepository;
 
 import java.io.IOException;
@@ -13,10 +12,11 @@ import java.security.*;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.time.Instant;
-import java.util.*;
-import java.util.function.Function;
+import java.util.Arrays;
+import java.util.HexFormat;
+import java.util.LinkedList;
+import java.util.Map;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toCollection;
 import static one.wangwei.blockchain.util.MerkleRoot.merkleRoot;
@@ -24,58 +24,46 @@ import static one.wangwei.blockchain.util.MerkleRoot.merkleRoot;
 public class Transaction {
     private static final int SUBSIDY = 10;
     private Id id;
-    private final TxInput[] inputs;
-    private final TxOutput[] outputs;
+    private final Input[] inputs;
+    private final Output[] outputs;
     private final Instant created;
 
     public static Transaction createCoinbaseTX(Address to, String data) {
         if (data.isBlank()) data = "Reward to '%s'".formatted(to);
-        var txInput = new TxInput(new Id(new byte[0]), -1, null, data.getBytes());
-        var txOutput = TxOutput.newTXOutput(SUBSIDY, to);
-        var tx = new Transaction(null, new TxInput[]{txInput}, new TxOutput[]{txOutput}, Instant.now());
+        var txInput = new Input(new Id(new byte[0]), -1, null, data.getBytes());
+        var txOutput = Output.newTXOutput(SUBSIDY, to);
+        var tx = new Transaction(null, new Input[]{txInput}, new Output[]{txOutput}, Instant.now());
         tx.id(new Id(tx.hash()));
         return tx;
     }
 
-    public byte[] hash() {
-        return Hashes.sha256(
-                merkleRoot(Arrays.stream(inputs()).map(TxInput::hash).collect(toCollection(LinkedList::new))),
-                merkleRoot(Arrays.stream(outputs()).map(TxOutput::hash).collect(toCollection(LinkedList::new))),
-                Numbers.toBytes(created().toEpochMilli())
-        );
-    }
-
-    public boolean isCoinbase() {
-        return inputs().length == 1 && inputs()[0].getTxId().value().length == 0 && inputs()[0].getTxOutputIndex() == -1;
-    }
-
     public static Transaction createTransaction(Address from, Address to, int amount, Blockchain chain, WalletRepository walletRepository) throws SignatureException, InvalidKeyException, NoSuchAlgorithmException, NoSuchProviderException, IOException, ClassNotFoundException {
         var fromWallet = walletRepository.getWallet(from);
-        var predicate = new Predicate<TxOutputReference>() {
+        var predicate = new Predicate<OutputReference>() {
             private int total;
 
             @Override
-            public boolean test(TxOutputReference x) {
+            public boolean test(OutputReference x) {
                 total += x.output().value();
                 return total < amount;
             }
         };
-        var result = getUnspent(chain, fromWallet)
+        var result = chain.getUnspent(fromWallet)
                 .takeWhile(predicate)
                 .toList();
         if (predicate.total < amount) throw new RuntimeException("insufficient funds");
 
         var inputs = result.stream()
-                .map(x -> new TxInput(x.txId(), x.index(), null, fromWallet.publicKey().getEncoded()))
-                .toArray(TxInput[]::new);
+                .map(x -> new Input(x.txId(), x.index(), null, fromWallet.publicKey().getEncoded()))
+                .toArray(Input[]::new);
 
         var toWallet = walletRepository.getWallet(to);
         var toPubKey = toWallet.publicKey().getEncoded();
         var toPubKeyHash = BtcAddressUtils.ripeMD160Hash(toPubKey);
-        var first = new TxOutput(amount, toPubKeyHash);
+        var first = new Output(amount, toPubKeyHash);
         var outputs = predicate.total > amount ?
-                new TxOutput[]{first, new TxOutput(predicate.total - amount, BtcAddressUtils.ripeMD160Hash(fromWallet.publicKey().getEncoded()))} :
-                new TxOutput[]{first};
+                new Output[]{first, new Output(predicate.total - amount, BtcAddressUtils.ripeMD160Hash(fromWallet.publicKey().getEncoded()))} :
+                new Output[]{first};
 
         var tx = new Transaction(null, inputs, outputs, Instant.now());
         tx.id(new Id(tx.hash()));
@@ -85,63 +73,28 @@ public class Transaction {
         return tx;
     }
 
-    public static Stream<TxOutputReference> getUnspent(Blockchain chain, Wallet fromWallet) {
-        return chain.stream()
-                .flatMap(x -> Arrays.stream(x.transactions()))
-                .flatMap(new Function<>() {
-                    private final List<TxInput> spent = new LinkedList<>();
-                    private final byte[] fromPubKey = fromWallet.publicKey().getEncoded();
-                    private final byte[] fromPubKeyHash = BtcAddressUtils.ripeMD160Hash(fromPubKey);
+    public byte[] hash() {
+        return Hashes.sha256(
+                merkleRoot(Arrays.stream(inputs()).map(Input::hash).collect(toCollection(LinkedList::new))),
+                merkleRoot(Arrays.stream(outputs()).map(Output::hash).collect(toCollection(LinkedList::new))),
+                Numbers.toBytes(created().toEpochMilli())
+        );
+    }
 
-                    @Override
-                    public Stream<? extends TxOutputReference> apply(Transaction transaction) {
-                        var unspent = Stream.<TxOutputReference>builder();
-                        var outputs = transaction.outputs();
-                        for (var index = 0; index < outputs.length; index++) {
-                            var output = outputs[index];
-
-                            // continue to the next output if this one is not of the sender
-                            if (!Arrays.equals(output.pubKeyHash(), fromPubKeyHash)) continue;
-
-                            // continue to the next output if this one is spent
-                            if (remove(transaction.id(), index)) continue;
-
-                            // add valid to list of unspent
-                            unspent.add(new TxOutputReference(transaction.id(), index, output));
-                        }
-                        // accumulate transaction inputs of sender
-                        for (var input : transaction.inputs()) {
-                            if (Arrays.equals(input.getPubKey(), fromPubKey)) {
-                                spent.add(input);
-                            }
-                        }
-
-                        return unspent.build();
-                    }
-
-                    private boolean remove(Id txId, int index) {
-                        for (var iterator = spent.listIterator(spent.size()); iterator.hasPrevious(); ) {
-                            var next = iterator.previous();
-                            if (next.getTxOutputIndex() == index && Objects.equals(next.getTxId(), txId)) {
-                                iterator.remove();
-                                return true;
-                            }
-                        }
-                        return false;
-                    }
-                });
+    public boolean isCoinbase() {
+        return inputs().length == 1 && inputs()[0].getTxId().value().length == 0 && inputs()[0].getOutputIndex() == -1;
     }
 
     public Transaction trimmedCopy() {
-        var tmpTXInputs = new TxInput[inputs().length];
+        var tmpTXInputs = new Input[inputs().length];
         for (var i = 0; i < inputs().length; i++) {
             var txInput = inputs()[i];
-            tmpTXInputs[i] = new TxInput(txInput.getTxId(), txInput.getTxOutputIndex(), null, null);
+            tmpTXInputs[i] = new Input(txInput.getTxId(), txInput.getOutputIndex(), null, null);
         }
-        var tmpTXOutputs = new TxOutput[outputs().length];
+        var tmpTXOutputs = new Output[outputs().length];
         for (var i = 0; i < outputs().length; i++) {
             var txOutput = outputs()[i];
-            tmpTXOutputs[i] = new TxOutput(txOutput.value(), txOutput.pubKeyHash());
+            tmpTXOutputs[i] = new Output(txOutput.value(), txOutput.pubKeyHash());
         }
         return new Transaction(id(), tmpTXInputs, tmpTXOutputs, created());
     }
@@ -158,7 +111,7 @@ public class Transaction {
         for (var i = 0; i < txCopy.inputs().length; i++) {
             var txInputCopy = txCopy.inputs()[i];
             var prevTx = prevTxMap.get(txInputCopy.getTxId());
-            var prevTxOutput = prevTx.outputs()[txInputCopy.getTxOutputIndex()];
+            var prevTxOutput = prevTx.outputs()[txInputCopy.getOutputIndex()];
             txInputCopy.setPubKey(prevTxOutput.pubKeyHash());
             txInputCopy.setSignature(null);
             signature.update(txCopy.hash());
@@ -179,7 +132,7 @@ public class Transaction {
         for (var i = 0; i < inputs().length; i++) {
             var txInput = inputs()[i];
             var prevTx = prevTxMap.get(txInput.getTxId());
-            var prevTxOutput = prevTx.outputs()[txInput.getTxOutputIndex()];
+            var prevTxOutput = prevTx.outputs()[txInput.getOutputIndex()];
             var txInputCopy = txCopy.inputs()[i];
             txInputCopy.setSignature(null);
             txInputCopy.setPubKey(prevTxOutput.pubKeyHash());
@@ -200,11 +153,11 @@ public class Transaction {
         this.id = id;
     }
 
-    public TxInput[] inputs() {
+    public Input[] inputs() {
         return this.inputs;
     }
 
-    public TxOutput[] outputs() {
+    public Output[] outputs() {
         return this.outputs;
     }
 
@@ -244,7 +197,7 @@ public class Transaction {
         return "Transaction[txId=" + id + ", inputs=" + Arrays.deepToString(this.inputs()) + ", outputs=" + Arrays.deepToString(this.outputs()) + ", createTime=" + this.created() + "]";
     }
 
-    public Transaction(final Id id, final TxInput[] inputs, final TxOutput[] outputs, final Instant created) {
+    public Transaction(final Id id, final Input[] inputs, final Output[] outputs, final Instant created) {
         this.id = id;
         this.inputs = inputs;
         this.outputs = outputs;

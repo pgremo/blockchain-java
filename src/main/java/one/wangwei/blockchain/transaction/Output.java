@@ -6,10 +6,10 @@ import one.wangwei.blockchain.wallet.Address;
 
 import java.util.HexFormat;
 
-public record TxOutput(int value, byte[] pubKeyHash) {
+public record Output(int value, byte[] pubKeyHash) {
 
-    public static TxOutput newTXOutput(int value, Address address) {
-        return new TxOutput(value, address.hash());
+    public static Output newTXOutput(int value, Address address) {
+        return new Output(value, address.hash());
     }
 
     public byte[] hash() {

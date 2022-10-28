@@ -74,7 +74,7 @@ public class Main {
     ) throws RocksDBException, NoSuchAlgorithmException, IOException, InvalidKeyException, ClassNotFoundException {
         try (var storage = new RocksDbBlockRepository(objectMapper)) {
             var blockchain = createBlockchain(storage, address);
-            var balance = getUnspent(blockchain, walletRepository.getWallet(address))
+            var balance = blockchain.getUnspent(walletRepository.getWallet(address))
                     .mapToInt(x -> x.output().value())
                     .sum();
             logger.log(INFO, () -> "Balance of '%s': %s".formatted(address, balance));
